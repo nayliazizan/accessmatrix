@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LicenseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,16 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+ 
+Route::get('/licenses', [LicenseController::class, 'index']);
+Route::get('/licenses/create', [LicenseController::class, 'create']);
+Route::post('/licenses', [LicenseController::class, 'store']);
+Route::get('/licenses/{license_id}', [LicenseController::class, 'show']);
+Route::delete('/licenses/{license_id}', [LicenseController::class, 'destroy']);
+
+Route::get('/licenses/{license_id}/edit', [LicenseController::class, 'edit']);
+Route::put('/licenses/{license_id}', [LicenseController::class, 'update']);
+
 
 Route::middleware([
     'auth:sanctum',
