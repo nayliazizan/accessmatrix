@@ -4,28 +4,26 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\License;
 
+//for EXPORT module
+use Maatwebsite\Excel\Facades\Excel;
+use PDF;
+use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\FromCollection;
+
 class LicenseController extends Controller
 {
     public function index(){
+        $licenses = License::withTrashed()->get(); // Include soft-deleted licenses
 
-        $licenses = License::all();
-        return view('licenses.index', ['licenses' => $licenses,]);
-    }
-
-    public function show($license_id){
-
-        $license = License::findOrFail($license_id);
-        return view('licenses.show', ['license'=>$license]);
+        return view('licenses.index', compact('licenses'));
     }
 
     public function create(){
-
         return view('licenses.create');
-
     }
 
    public function store(){
-
         $license = new License();
 
         $license->license_name = request('license_name');
@@ -36,11 +34,29 @@ class LicenseController extends Controller
         return redirect('/licenses');
     }
 
-    public function destroy($license_id){
+    public function destroy($license_id)
+    {
         $license = License::findOrFail($license_id);
-        $license->delete();
 
-        return redirect('/licenses');
+        if ($license->trashed()) {
+            // Permanently delete the soft-deleted license
+            $license->forceDelete();
+            return redirect()->route('licenses.index')->with('success', 'License permanently deleted!');
+        } else {
+            // Soft-delete the license
+            $license->delete();
+            return redirect()->route('licenses.index')->with('success', 'License soft-deleted!');
+        }
+    }
+
+    public function restore($license_id)
+    {
+        $license = License::withTrashed()->findOrFail($license_id);
+
+        // Restore the soft-deleted license
+        $license->restore();
+
+        return redirect()->route('licenses.index')->with('success', 'License restored!');
     }
 
     public function edit($license_id){
@@ -53,8 +69,47 @@ class LicenseController extends Controller
         $license->license_name = $request->input('license_name');
         $license->license_desc = $request->input('license_desc');
         $license->save();
-        return redirect('/licenses/'.$license->license_id);
+        return redirect('/licenses');
     }
-    
 
+    public function exportListLicense($format)
+    {
+        switch ($format) {
+            case 'csv':
+                return Excel::download(new LicenseExport, 'licenses.csv');
+                break;
+            case 'pdf':
+                $licenses = License::withTrashed()->get();
+                $pdf = PDF::loadView('exports.licenses_list', ['licenses' => $licenses]);
+                return $pdf->download('licenses.pdf');
+                break;
+            default:
+                return redirect('/licenses')->with('error', 'Invalid export format');
+        }
+    }
 }
+
+class LicenseExport implements FromCollection, WithHeadings
+{
+    use Exportable;
+
+    public function headings(): array
+    {
+        return [
+            'License ID',
+            'License Name',
+            'License Description',
+            'Time Created',
+            'Time Updated',
+            'Time Deleted',
+        ];
+    }
+
+    public function collection()
+    {
+        return License::select('license_id', 'license_name', 'license_desc', 'created_at', 'updated_at', 'deleted_at')
+            ->withTrashed() // Include soft-deleted projects
+                ->get();
+    }
+}
+

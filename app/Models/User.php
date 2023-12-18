@@ -18,6 +18,7 @@ class User extends Authenticatable
     use Notifiable;
     use TwoFactorAuthenticatable;
 
+    protected $primaryKey = 'user_id'; // Change 'id' to 'user_id'
     /**
      * The attributes that are mass assignable.
      *
