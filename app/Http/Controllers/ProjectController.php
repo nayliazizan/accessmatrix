@@ -35,12 +35,6 @@ class ProjectController extends Controller
         return redirect('/projects');
     }
 
-    //public function destroy($project_id){
-    //    $project = Project::findOrFail($project_id);
-    //    $project->update(['state' => 'inactive']); // Soft delete by updating the state
-    //    return redirect('/projects');
-    //}
-
     public function destroy($project_id)
     {
         $project = Project::findOrFail($project_id);
@@ -63,7 +57,7 @@ class ProjectController extends Controller
         // Restore the soft-deleted license
         $project->restore();
 
-        return redirect()->route('projects.index')->with('success', 'License restored!');
+        return redirect()->route('projects.index')->with('success', 'Project restored!');
     }
 
     public function edit($project_id){

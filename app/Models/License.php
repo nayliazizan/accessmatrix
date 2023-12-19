@@ -12,4 +12,9 @@ class License extends Model
     protected $fillable = ['license_name', 'license_desc'];
     protected $dates = ['deleted_at'];
 
+    public function groupLicenses()
+    {
+        return $this->hasMany(GroupLicense::class, 'group_id', 'group_id');
+    }
+
 }

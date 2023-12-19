@@ -51,11 +51,13 @@ Route::middleware('auth')->group(function () {
     Route::put('/projects/{project_id}', [ProjectController::class, 'update']);
     Route::get('/projects/export/{format}', [ProjectController::class, 'exportList'])->name('exportList');
     Route::delete('projects/{project}/force-delete', [ProjectController::class, 'destroy'])->name('projects.force-delete');
-    Route::get('projects/restore/{license}', [ProjectController::class, 'restore'])->name('projects.restore');
+    Route::get('projects/restore/{project}', [ProjectController::class, 'restore'])->name('projects.restore');
     Route::resource('projects', ProjectController::class);
 
 
     Route::resource('groups', GroupController::class);
+    Route::get('/groups/{group}/restore', [GroupController::class, 'restore'])->name('groups.restore');
+    //Route::get('groups/restore/{group}', [GroupController::class, 'restore'])->name('groups.restore');
     Route::get('/groups/export/{format}', [GroupController::class, 'exportListGroup'])->name('exportListGroup');
 
 

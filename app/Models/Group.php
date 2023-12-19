@@ -5,9 +5,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Group extends Model
 {
+    use SoftDeletes;
+
     protected $primaryKey = 'group_id';
     protected $fillable = ['group_name', 'group_desc'];
 
@@ -30,5 +33,7 @@ class Group extends Model
     {
         return $this->hasMany(GroupLicense::class, 'group_id', 'group_id');
     }
+
+    
 
 }

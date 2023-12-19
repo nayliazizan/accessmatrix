@@ -35,40 +35,60 @@
                 @endforeach
             </td>
             <td>
-                <a href="{{ route('groups.edit', $group->group_id) }}" class="btn btn-primary">UPDATE</a>
+                <!-- <a href="{{ route('groups.edit', $group->group_id) }}" class="btn btn-primary">UPDATE</a> -->
+
+                @if($group->trashed())
+                    <button class="btn btn-secondary" disabled>UPDATE</button>
+                @else
+                    <a href="{{ route('groups.edit', $group->group_id) }}" class="btn btn-primary">UPDATE</a>
+                @endif
             </td>
             <td>
-                <!-- Button trigger modal -->
-                <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal{{ $group->group_id }}">
-                    DELETE
-                </button>
+                @if($group->trashed())
+                    <!-- Display the RESTORE button for soft-deleted groups -->
+                    <form action="{{ route('groups.restore', $group->group_id) }}" method="GET">
+                        @csrf
+                        
+                        <button type="submit" class="btn btn-success">RESTORE</button>
+                    </form>
+                @else
+                    <!-- Button trigger modal -->
+                    <form action="{{ route('groups.destroy', $group->group_id) }}" method="POST">
+                        @csrf
+                        @method('DELETE')
+                        <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal{{ $group->group_id }}">
+                            DELETE
+                        </button>
+                    </form>
+                    
 
-                <!-- Delete Modal -->
-                <div class="modal fade" id="deleteModal{{ $group->group_id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-                    <div class="modal-dialog" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="deleteModalLabel">Delete Confirmation</h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                Are you sure to delete '{{ $group->group_name }}' group?
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
-                                <!-- Form to handle the DELETE request -->
-                                <form action="{{ route('groups.destroy', $group->group_id) }}" method="POST">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger">YES</button>
-                                </form>
+
+                    <!-- Delete Modal -->
+                    <div class="modal fade" id="deleteModal{{ $group->group_id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deleteModalLabel">Delete Confirmation</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    Are you sure to delete '{{ $group->group_name }}' group?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
+                                    <!-- Form to handle the DELETE request -->
+                                    <form action="{{ route('groups.destroy', $group->group_id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger">YES</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-
+                @endif
             </td>
         </tr>
     @endforeach

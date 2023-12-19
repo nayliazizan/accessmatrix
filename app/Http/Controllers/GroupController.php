@@ -10,19 +10,22 @@ use App\Models\Project;
 use App\Models\GroupLicense;
 use App\Models\GroupProject;
 use Illuminate\Validation\Rule;
+use Illuminate\Database\Eloquent\Builder;
+
 
 
 class GroupController extends Controller
 {
     public function index()
     {
-        $groups = Group::with(['groupLicenses' => function ($query) {
+        $groups = Group::withTrashed(['groupLicenses' => function ($query) {
             $query->whereNull('deleted_at');
         }, 'groupProjects' => function ($query) {
             $query->whereNull('deleted_at')->with('project');
         }])->get();
 
         return view('groups.index', compact('groups'));
+        
     }
 
     public function create()
@@ -59,22 +62,23 @@ class GroupController extends Controller
         return redirect()->route('groups.index');
     }
 
-    public function destroy(Group $group)
+    public function destroy($group_id)
     {
-        if ($group->exists()) {
-            // Detach all associated licenses before deleting the group
-            $group->licenses()->detach();
+        $group = Group::findOrFail($group_id);
 
-            // Detach all associated projects before deleting the group
-            $group->projects()->detach();
+        $group->delete();
 
-            // Delete the group itself
-            $group->delete();
+        return redirect()->route('groups.index')->with('success', 'Group and related records soft deleted!');
+    }
 
-            return redirect()->route('groups.index')->with('success', 'Group successfully deleted!');
-        }
+    public function restore($group_id)
+    {
+        $group = Group::withTrashed()->findOrFail($group_id);
 
-        return redirect()->route('groups.index')->with('error', 'Group not found!');
+        // Restore the soft-deleted license
+        $group->restore();
+
+        return redirect()->route('groups.index')->with('success', 'Group restored!');
     }
 
     public function edit(Group $group)
