@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\StaffController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,12 +55,14 @@ Route::middleware('auth')->group(function () {
     Route::get('projects/restore/{project}', [ProjectController::class, 'restore'])->name('projects.restore');
     Route::resource('projects', ProjectController::class);
 
-
     Route::resource('groups', GroupController::class);
     Route::get('/groups/{group}/restore', [GroupController::class, 'restore'])->name('groups.restore');
-    //Route::get('groups/restore/{group}', [GroupController::class, 'restore'])->name('groups.restore');
     Route::get('/groups/export/{format}', [GroupController::class, 'exportListGroup'])->name('exportListGroup');
+    Route::get('groups/{group}/show_staff', [GroupController::class, 'show_staff'])->name('groups.show_staff');
+    
 
+
+    Route::resource('staffs', StaffController::class);
 
     Route::get('/counter', function () {return view('counter');});
 

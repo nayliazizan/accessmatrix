@@ -43,6 +43,7 @@
                 <a class="nav-item nav-link" href="/licenses">LICENSES<span class="sr-only">(current)</span></a>
                 <a class="nav-item nav-link" href="/projects">PROJECTS</a>
                 <a class="nav-item nav-link" href="/groups">GROUPS</a>
+                <a class="nav-item nav-link" href="/staffs">STAFF</a>
                 <a class="nav-item nav-link" href="#">TRACKER</a>
                 <!-- Add the logout form here -->
                 <form method="POST" action="{{ route('logout') }}" class="nav-item">

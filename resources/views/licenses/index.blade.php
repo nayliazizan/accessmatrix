@@ -1,7 +1,7 @@
 @extends('layouts.layout')
 
 @section('content')
-
+<h2>ALL LICENSES</h2>
 <button type="button" class="btn btn-warning"><a href="/licenses/create">ADD</a></button>
 
 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exportListModal">

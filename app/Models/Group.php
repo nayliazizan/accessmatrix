@@ -34,6 +34,9 @@ class Group extends Model
         return $this->hasMany(GroupLicense::class, 'group_id', 'group_id');
     }
 
-    
+    public function staffs()
+    {
+        return $this->hasMany(Staff::class, 'group_id', 'group_id');
+    }
 
 }

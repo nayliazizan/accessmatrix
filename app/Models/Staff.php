@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Staff extends Model
 {
     use HasFactory;
-
+    protected $table = 'staffs';
     protected $primaryKey = 'staff_id';
     protected $fillable = ['group_id', 'staff_id_rw', 'staff_name', 'dept_id', 'dept_name', 'status'];
 
@@ -17,4 +17,6 @@ class Staff extends Model
     {
         return $this->belongsTo(Group::class, 'group_id', 'group_id');
     }
+
+    
 }

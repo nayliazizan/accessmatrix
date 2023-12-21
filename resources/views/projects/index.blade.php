@@ -1,7 +1,7 @@
 @extends('layouts.layout')
 
 @section('content')
-
+<h2>ALL PROJECTS</h2>
 <button type="button" class="btn btn-warning"><a href="/projects/create">ADD</a></button>
 
 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exportListModal">

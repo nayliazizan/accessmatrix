@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/GroupController.php
 
 namespace App\Http\Controllers;
 
@@ -11,7 +10,15 @@ use App\Models\GroupLicense;
 use App\Models\GroupProject;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\Staff;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Response;
 
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\GroupsExport;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use PDF;
 
 
 class GroupController extends Controller
@@ -66,10 +73,20 @@ class GroupController extends Controller
     {
         $group = Group::findOrFail($group_id);
 
+        // Check if there are related staff
+        $relatedStaffCount = Staff::where('group_id', $group_id)->count();
+
+        if ($relatedStaffCount > 0) {
+            // Display a message that the group has staff
+            return redirect()->route('groups.index')->with('error', 'Cannot delete the group. The group has staff.');
+        }
+
+        // No related staff, proceed with deletion
         $group->delete();
 
-        return redirect()->route('groups.index')->with('success', 'Group and related records soft deleted!');
+        return redirect()->route('groups.index')->with('success', 'The selected group soft deleted!');
     }
+
 
     public function restore($group_id)
     {
@@ -84,7 +101,7 @@ class GroupController extends Controller
     public function edit(Group $group)
     {
         $licenses = License::whereNull('deleted_at')->get();
-        $projects = Project::whereNull('deleted_at')->get(); // Use the new method to get active projects
+        $projects = Project::whereNull('deleted_at')->get();
 
         // Fetch licenses and projects for the group
         $groupLicenses = GroupLicense::where('group_id', $group->group_id)->get();
@@ -132,4 +149,57 @@ class GroupController extends Controller
         return redirect()->route('groups.index');
     }
 
+    public function show_staff(Group $group)
+    {
+        $groupName = $group->group_name;
+        $staffs = Staff::where('group_id', $group->group_id)->get();
+
+        return view('groups.show_staff', compact('staffs', 'groupName'));
+    }
+
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    public static function routes()
+    {
+        Route::resource('groups', GroupController::class);
+        Route::get('groups/{group}/show_staff', [GroupController::class, 'show_staff'])->name('groups.show_staff');
+        Route::get('groups/export/{format}', [GroupController::class, 'exportGroups'])->name('groups.export');
+    }
+
+    public function exportGroups($format)
+    {
+        if ($format === 'csv') {
+            return Excel::download(new GroupsExport, 'groups_report.csv');
+        } elseif ($format === 'pdf') {
+            // Example using barryvdh/laravel-dompdf:
+            $pdf = PDF::loadView('exports.groups_list', ['groups' => Group::all()]);
+            return $pdf->download('groups_report.pdf');
+        } else {
+            return redirect()->route('groups.index')->with('error', 'Invalid export format.');
+        }
+    }
+
+}
+
+class GroupsExport implements FromCollection, WithHeadings
+{
+    public function collection()
+    {
+        return Group::all();
+    }
+
+    public function headings(): array
+    {
+        return [
+            'Group ID',
+            'Group Name',
+            'Group Description',
+            'License Name',
+            'Project Name',
+            'Deleted At',
+        ];
+    }
 }

@@ -37,6 +37,16 @@
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
+                    <h5 class="card-title">Staff</h5>
+                    <p class="card-text">Manage staff</p>
+                    <a href="{{ route('staffs.index') }}" class="btn btn-primary">Go to Staffs</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
                     <h5 class="card-title">Tracker</h5>
                     <p class="card-text">Manage tracker (To be developed)</p>
                     <!-- Link to future tracker page -->
