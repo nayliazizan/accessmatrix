@@ -1,13 +1,25 @@
 <style>
     table {
-        border-collapse: collapse;
         width: 100%;
+        border-collapse: collapse;
     }
 
-    table, th, td {
-        border: 1px solid black;
+    th, td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+
+    h2 {
+        text-align: center;
     }
 </style>
+
+<h2>All Projects Record</h2>
 
 <table>
     <thead>

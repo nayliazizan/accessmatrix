@@ -1,13 +1,28 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Groups Report</title>
-</head>
-<body>
 
-<h2>Groups Report</h2>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+    
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+    
+        th {
+            background-color: #f2f2f2;
+        }
+    
+        h2 {
+            text-align: center;
+        }
+    </style>
 
-<table border="1">
+<h2>All Groups Record</h2>
+
+<table>
     <thead>
         <tr>
             <th>Group ID</th>
@@ -15,7 +30,9 @@
             <th>Group Description</th>
             <th>License Name</th>
             <th>Project Name</th>
-            <th>Deleted At</th>
+            <th>Time Created</th>
+            <th>Time Updated</th>
+            <th>Time Deleted</th>
         </tr>
     </thead>
     <tbody>
@@ -34,11 +51,10 @@
                         {{ $project->project_name }}<br>
                     @endforeach
                 </td>
+                <td>{{ $group->created_at }}</td>
+                <td>{{ $group->updated_at }}</td>
                 <td>{{ $group->deleted_at }}</td>
             </tr>
         @endforeach
     </tbody>
 </table>
-
-</body>
-</html>

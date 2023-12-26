@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Response;
 
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\GroupsExport;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use PDF;
@@ -162,12 +161,7 @@ class GroupController extends Controller
         $this->middleware('auth');
     }
 
-    public static function routes()
-    {
-        Route::resource('groups', GroupController::class);
-        Route::get('groups/{group}/show_staff', [GroupController::class, 'show_staff'])->name('groups.show_staff');
-        Route::get('groups/export/{format}', [GroupController::class, 'exportGroups'])->name('groups.export');
-    }
+
 
     public function exportGroups($format)
     {
@@ -175,7 +169,7 @@ class GroupController extends Controller
             return Excel::download(new GroupsExport, 'groups_report.csv');
         } elseif ($format === 'pdf') {
             // Example using barryvdh/laravel-dompdf:
-            $pdf = PDF::loadView('exports.groups_list', ['groups' => Group::all()]);
+            $pdf = PDF::loadView('exports.groups_list', ['groups' => Group::withTrashed()->get()]);
             return $pdf->download('groups_report.pdf');
         } else {
             return redirect()->route('groups.index')->with('error', 'Invalid export format.');
@@ -188,7 +182,26 @@ class GroupsExport implements FromCollection, WithHeadings
 {
     public function collection()
     {
-        return Group::all();
+        // Fetch necessary data for CSV export
+        $groups = Group::withTrashed()->get();
+        $data = [];
+
+        foreach ($groups as $group) {
+            $rowData = [
+                'Group ID' => $group->group_id,
+                'Group Name' => $group->group_name,
+                'Group Description' => $group->group_desc,
+                'License Name' => $group->licenses->implode('license_name', ', '),
+                'Project Name' => $group->projects->implode('project_name', ', '),
+                'Time Created' => $group->created_at,
+                'Time Updated' => $group->updated_at,
+                'Time Deleted' => $group->deleted_at,
+            ];
+
+            $data[] = $rowData;
+        }
+
+        return collect($data);
     }
 
     public function headings(): array
@@ -199,7 +212,9 @@ class GroupsExport implements FromCollection, WithHeadings
             'Group Description',
             'License Name',
             'Project Name',
-            'Deleted At',
+            'Time Created',
+            'Time Updated',
+            'Time Deleted',
         ];
     }
 }
