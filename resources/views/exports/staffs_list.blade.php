@@ -3,12 +3,18 @@
     table {
         width: 100%;
         border-collapse: collapse;
+        table-layout: fixed; /* Fixed layout to evenly distribute column widths */
     }
 
     th, td {
         border: 1px solid #dddddd;
         text-align: left;
         padding: 8px;
+        white-space: normal; /* Prevent text from wrapping */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Display ellipsis for overflowed text */
+        font-size: 12px; /* Adjust font size as needed */
+        word-wrap: break-word;
     }
 
     th {
@@ -18,6 +24,7 @@
     h2 {
         text-align: center;
     }
+    
 </style>
 
 <h2>All Staff Record</h2>
@@ -32,6 +39,8 @@
             <th>Department ID</th>
             <th>Department Name</th>
             <th>Status</th>
+            <th>Time Created</th>
+            <th>Time Updated</th>
         </tr>
     </thead>
     <tbody>
@@ -44,6 +53,8 @@
                 <td>{{ $staff->dept_id }}</td>
                 <td>{{ $staff->dept_name }}</td>
                 <td>{{ $staff->status }}</td>
+                <td>{{ $staff->created_at }}</td>
+                <td>{{ $staff->updated_at }}</td>
             </tr>
         @endforeach
     </tbody>

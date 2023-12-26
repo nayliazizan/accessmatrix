@@ -116,7 +116,9 @@ class StaffsExport implements FromCollection, WithHeadings
                 'staffs.staff_name',
                 'staffs.dept_id',
                 'staffs.dept_name',
-                'staffs.status'
+                'staffs.status',
+                'staffs.created_at',
+                'staffs.updated_at',
             )
             ->get();
 
@@ -133,6 +135,8 @@ class StaffsExport implements FromCollection, WithHeadings
             'Department ID',
             'Department Name',
             'Status',
+            'Time Created',
+            'Time Updated',
         ];
     }
 }
