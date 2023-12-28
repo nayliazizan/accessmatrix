@@ -6,13 +6,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Traits\LogsChanges;
+
 class GroupProject extends Model
 {
     use SoftDeletes;
+    use LogsChanges;
 
     protected $table = 'group_project';
     protected $primaryKey = 'id';
     public $timestamps = false;
+    
 
     public function project()
     {

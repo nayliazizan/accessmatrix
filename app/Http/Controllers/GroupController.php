@@ -135,6 +135,10 @@ class GroupController extends Controller
 
         // Sync licenses by IDs
         $licenses = $request->input('licenses', []);
+        $licenseData = [];
+        foreach ($licenses as $licenseId) {
+            $licenseData[$licenseId] = ['license_name' => '']; // Provide the default value for license_name
+        }
         $group->licenses()->sync($licenses);
 
         // Sync projects by IDs with additional data

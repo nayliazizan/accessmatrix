@@ -6,9 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Traits\LogsChanges;
+
 class GroupLicense extends Model
 {
     use SoftDeletes;
+    use LogsChanges;
 
     protected $table = 'group_license';
     protected $primaryKey = 'id';

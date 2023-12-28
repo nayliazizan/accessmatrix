@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('licenses/{license}/force-delete', [LicenseController::class, 'destroy'])->name('licenses.force-delete');
     Route::get('licenses/restore/{license}', [LicenseController::class, 'restore'])->name('licenses.restore');
     Route::resource('licenses', LicenseController::class);
+    Route::get('/licenses/exportLog/{format}', [LicenseController::class, 'exportLogLicense'])->name('exportLogLicense');
 
 
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');

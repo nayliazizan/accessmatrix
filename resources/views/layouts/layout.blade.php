@@ -16,7 +16,7 @@
 
         main {
             padding: 20px;
-            margin: 10% auto; /* Center content horizontally */
+            margin: 2% auto; /* Center content horizontally */
             width: 80%; /* Take 80% of the page width */
         }
 

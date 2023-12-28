@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\License;
+use App\Models\Log;
 
 //for EXPORT module
 use Maatwebsite\Excel\Facades\Excel;
@@ -87,6 +88,22 @@ class LicenseController extends Controller
                 return redirect('/licenses')->with('error', 'Invalid export format');
         }
     }
+
+    public function exportLogLicense($format)
+    {
+        switch ($format) {
+            case 'csv':
+                return Excel::download(new LicenseLogChangesExport, 'licenses_log.csv');
+                break;
+            case 'pdf':
+                $logs = Log::get();
+                $pdf = PDF::loadView('exports.licenses_log', ['logs' => $logs]);
+                return $pdf->download('licenses_log.pdf');
+                break;
+            default:
+                return redirect('/licenses')->with('error', 'Invalid export format');
+        }
+    }
 }
 
 class LicenseExport implements FromCollection, WithHeadings
@@ -110,6 +127,32 @@ class LicenseExport implements FromCollection, WithHeadings
         return License::select('license_id', 'license_name', 'license_desc', 'created_at', 'updated_at', 'deleted_at')
             ->withTrashed() // Include soft-deleted projects
                 ->get();
+    }
+}
+
+class LicenseLogChangesExport implements FromCollection, WithHeadings
+{
+    use Exportable;
+
+    public function headings(): array
+    {
+        return [
+            '#',
+            'Type of Action',
+            'User ID',
+            'Table Name',
+            'Column Name',
+            'Record ID',
+            'Old Value',
+            'New Value',
+            'Time',
+        ];
+    }
+
+    public function collection()
+    {
+        return Log::select('log_id', 'type_action', 'user_id', 'table_name', 'column_name', 'record_id', 'old_value', 'new_value', 'created_at')
+            ->get();
     }
 }
 

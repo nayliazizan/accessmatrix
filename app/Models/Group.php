@@ -7,12 +7,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+//for log purpose
+use App\Traits\LogsChanges;
+
 class Group extends Model
 {
     use SoftDeletes;
 
     protected $primaryKey = 'group_id';
     protected $fillable = ['group_name', 'group_desc'];
+
+    //for log purpose
+    use LogsChanges;
 
     public function licenses()
     {

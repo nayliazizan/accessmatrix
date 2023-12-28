@@ -50,6 +50,52 @@
     </div>
 </div>
 
+<button type="button" class="btn btn-info" data-toggle="modal" data-target="#exportLogChangesModal">
+    LOG CHANGES
+</button>
+
+<!-- Export List Modal -->
+<div class="modal fade" id="exportLogChangesModal" tabindex="-1" role="dialog" aria-labelledby="exportLogChangesModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportLogChangesModalLabel">Export List Options</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Choose which log you want to export:</p>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exportFormatLogModal">
+                    LICENSES
+                </button>
+                <button type="button" class="btn btn-primary" disabled>
+                    LICENSES & PROJECTS (To be developed)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Format Modal -->
+<div class="modal fade" id="exportFormatLogModal" tabindex="-1" role="dialog" aria-labelledby="exportFormatLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportFormatLogModalLabel">Export Format Options</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Choose in what format you want the record to be exported:</p>
+                <a href="{{ route('exportLogLicense', ['format' => 'csv']) }}" class="btn btn-primary">CSV</a>
+                <a href="{{ route('exportLogLicense', ['format' => 'pdf']) }}" class="btn btn-primary">PDF</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <table class="table">
   <thead class="thead-light">
     <tr>
