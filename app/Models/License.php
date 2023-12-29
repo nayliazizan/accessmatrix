@@ -23,4 +23,5 @@ class License extends Model
         return $this->hasMany(GroupLicense::class, 'group_id', 'group_id');
     }
 
+
 }

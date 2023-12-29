@@ -77,7 +77,7 @@ class LicenseController extends Controller
     {
         switch ($format) {
             case 'csv':
-                return Excel::download(new LicenseExport, 'licenses.csv');
+                return Excel::download(new LicenseListExport, 'licenses.csv');
                 break;
             case 'pdf':
                 $licenses = License::withTrashed()->get();
@@ -106,7 +106,7 @@ class LicenseController extends Controller
     }
 }
 
-class LicenseExport implements FromCollection, WithHeadings
+class LicenseListExport implements FromCollection, WithHeadings
 {
     use Exportable;
 
@@ -155,4 +155,3 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings
             ->get();
     }
 }
-

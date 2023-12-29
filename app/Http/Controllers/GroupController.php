@@ -19,6 +19,8 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use PDF;
 
+use App\Models\GroupLicenseLog;
+use App\Models\GroupProjectLog;
 
 class GroupController extends Controller
 {
@@ -121,33 +123,77 @@ class GroupController extends Controller
                 'string',
                 'max:100',
                 Rule::unique('groups', 'group_name')->ignore($group->group_id, 'group_id'),
-            ],            
+            ],
             'group_desc' => 'nullable|string',
             'licenses' => 'array',
             'projects' => 'array',
         ]);
-        
+
         // Update group details
         $group->update([
             'group_name' => $request->input('group_name'),
             'group_desc' => $request->input('group_desc'),
         ]);
 
-        // Sync licenses by IDs
+        // Log changes for group licenses
         $licenses = $request->input('licenses', []);
-        $licenseData = [];
-        foreach ($licenses as $licenseId) {
-            $licenseData[$licenseId] = ['license_name' => '']; // Provide the default value for license_name
-        }
-        $group->licenses()->sync($licenses);
+        $existingLicenses = $group->licenses->pluck('license_id')->toArray();
 
-        // Sync projects by IDs with additional data
-        $projects = $request->input('projects', []);
-        $projectData = [];
-        foreach ($projects as $projectId) {
-            $projectData[$projectId] = ['project_name' => '']; // Provide the default value for project_name
+        // Log creations
+        foreach (array_diff($licenses, $existingLicenses) as $licenseId) {
+            GroupLicenseLog::create([
+                'user_id' => auth()->id(),
+                'group_id' => $group->group_id,
+                'license_id' => $licenseId,
+                'action_type' => 'create',
+            ]);
+
+            // Sync licenses by IDs (including license_name)
+            $group->licenses()->sync([$licenseId => ['license_name' => License::find($licenseId)->license_name]]);
         }
-        $group->projects()->sync($projectData);
+
+        // Log deletions
+        foreach (array_diff($existingLicenses, $licenses) as $licenseId) {
+            GroupLicenseLog::create([
+                'user_id' => auth()->id(),
+                'group_id' => $group->group_id,
+                'license_id' => $licenseId,
+                'action_type' => 'delete',
+            ]);
+
+            // Detach licenses by IDs
+            $group->licenses()->detach($licenseId);
+        }
+
+        // Log changes for group projects
+        $projects = $request->input('projects', []);
+        $existingProjects = $group->projects->pluck('project_id')->toArray();
+
+        // Log creations
+        foreach (array_diff($projects, $existingProjects) as $projectId) {
+            GroupProjectLog::create([
+                'user_id' => auth()->id(),
+                'group_id' => $group->group_id,
+                'project_id' => $projectId,
+                'action_type' => 'create',
+            ]);
+
+            // Sync projects by IDs (including project_name)
+            $group->projects()->sync([$projectId => ['project_name' => Project::find($projectId)->project_name]]);
+        }
+
+        // Log deletions
+        foreach (array_diff($existingProjects, $projects) as $projectId) {
+            GroupProjectLog::create([
+                'user_id' => auth()->id(),
+                'group_id' => $group->group_id,
+                'project_id' => $projectId,
+                'action_type' => 'delete',
+            ]);
+
+            // Detach projects by IDs
+            $group->projects()->detach($projectId);
+        }
 
         return redirect()->route('groups.index');
     }

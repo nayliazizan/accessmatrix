@@ -22,4 +22,5 @@ class Project extends Model
     {
         return $this->hasMany(GroupProject::class, 'group_id', 'group_id');
     }
+
 }

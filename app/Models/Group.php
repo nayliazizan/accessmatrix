@@ -45,4 +45,24 @@ class Group extends Model
         return $this->hasMany(Staff::class, 'group_id', 'group_id');
     }
 
+    public function syncLicenses(array $licenses)
+    {
+        $licenseData = [];
+        foreach ($licenses as $licenseId) {
+            $licenseData[$licenseId] = ['license_name' => ''];
+        }
+        $this->licenses()->sync($licenseData);
+    }
+
+    public function syncProjects(array $projects)
+    {
+        $projectData = [];
+        foreach ($projects as $projectId) {
+            $projectData[$projectId] = ['project_name' => ''];
+        }
+        $this->projects()->sync($projectData);
+    }
+
 }
+
+

@@ -24,9 +24,12 @@ trait LogsChanges
             self::logChange('delete', $model);
         });
 
-        static::restoring(function ($model) {
-            self::logChange('restore', $model);
-        });
+        // Check if the model uses the SoftDeletes trait before registering the event
+        if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive(get_called_class()))) {
+            static::restoring(function ($model) {
+                self::logChange('restore', $model);
+            });
+        }
     }
 
     public static function getLogData($action, $model)
@@ -78,4 +81,5 @@ trait LogsChanges
         // Create a log entry
         Log::create($logData);
     }
+       
 }

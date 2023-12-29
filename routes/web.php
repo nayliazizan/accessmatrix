@@ -38,7 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/licenses/{license_id}', [LicenseController::class, 'destroy']);
     Route::get('/licenses/{license_id}/edit', [LicenseController::class, 'edit']);
     Route::put('/licenses/{license_id}', [LicenseController::class, 'update']);
-    Route::get('/licenses/export/{format}', [LicenseController::class, 'exportListLicense'])->name('exportListLicense');
+    Route::get('/licenses/exportList/{format}', [LicenseController::class, 'exportListLicense'])->name('exportListLicense');
     Route::delete('licenses/{license}/force-delete', [LicenseController::class, 'destroy'])->name('licenses.force-delete');
     Route::get('licenses/restore/{license}', [LicenseController::class, 'restore'])->name('licenses.restore');
     Route::resource('licenses', LicenseController::class);
