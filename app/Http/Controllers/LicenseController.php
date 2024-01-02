@@ -11,6 +11,8 @@ use PDF;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class LicenseController extends Controller
 {
@@ -76,8 +78,8 @@ class LicenseController extends Controller
     public function exportListLicense($format)
     {
         switch ($format) {
-            case 'csv':
-                return Excel::download(new LicenseListExport, 'licenses.csv');
+            case 'xls':
+                return Excel::download(new LicenseListExport, 'licenses_list.xls');
                 break;
             case 'pdf':
                 $licenses = License::withTrashed()->get();
@@ -92,11 +94,14 @@ class LicenseController extends Controller
     public function exportLogLicense($format)
     {
         switch ($format) {
-            case 'csv':
-                return Excel::download(new LicenseLogChangesExport, 'licenses_log.csv');
+            case 'xls':
+                return Excel::download(new LicenseLogChangesExport, 'licenses_log.xls');
                 break;
             case 'pdf':
-                $logs = Log::get();
+                $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+                ->where('logs.table_name', 'licenses')
+                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+                ->get();
                 $pdf = PDF::loadView('exports.licenses_log', ['logs' => $logs]);
                 return $pdf->download('licenses_log.pdf');
                 break;
@@ -106,31 +111,60 @@ class LicenseController extends Controller
     }
 }
 
-class LicenseListExport implements FromCollection, WithHeadings
+class LicenseListExport implements FromCollection, WithHeadings, WithStyles
 {
     use Exportable;
 
     public function headings(): array
     {
         return [
-            'License ID',
-            'License Name',
-            'License Description',
-            'Time Created',
-            'Time Updated',
-            'Time Deleted',
+            'LICENSE ID',
+            'LICENSE NAME',
+            'LICENSE DESCRIPTION',
+            'TIME CREATED',
+            'TIME UPDATED',
+            'TIME DELETED',
         ];
     }
 
     public function collection()
     {
         return License::select('license_id', 'license_name', 'license_desc', 'created_at', 'updated_at', 'deleted_at')
-            ->withTrashed() // Include soft-deleted projects
+            ->withTrashed() // Include soft-deleted licenses
                 ->get();
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:F1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 15,
+            'B' => 30,
+            'C' => 30,
+            'D' => 27,
+            'E' => 27,
+            'F' => 27,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+
+        $columnsToWrap = ['C'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
     }
 }
 
-class LicenseLogChangesExport implements FromCollection, WithHeadings
+class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyles
 {
     use Exportable;
 
@@ -138,20 +172,59 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings
     {
         return [
             '#',
-            'Type of Action',
-            'User ID',
-            'Table Name',
-            'Column Name',
-            'Record ID',
-            'Old Value',
-            'New Value',
-            'Time',
+            'USER ID',
+            'USER NAME',
+            'TYPE OF ACTION',
+            'TABLE NAME',
+            'RECORD ID',
+            'RECORD NAME',
+            'COLUMN NAME',
+            'OLD VALUE',
+            'NEW VALUE',
+            'TIME',
         ];
     }
 
     public function collection()
     {
-        return Log::select('log_id', 'type_action', 'user_id', 'table_name', 'column_name', 'record_id', 'old_value', 'new_value', 'created_at')
+        return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+            ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+            ->where('logs.table_name', 'licenses') // Add the condition for table_name
             ->get();
     }
+    
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:K1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 14,
+            'B' => 8,
+            'C' => 20,
+            'D' => 8,
+            'E' => 12,
+            'F' => 9,
+            'G' => 30,
+            'H' => 13,
+            'I' => 30,
+            'J' => 30,
+            'K' => 27,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+
+        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
+    }
+
 }

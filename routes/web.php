@@ -51,10 +51,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/projects/{project_id}', [ProjectController::class, 'destroy']);
     Route::get('/projects/{project_id}/edit', [ProjectController::class, 'edit']);
     Route::put('/projects/{project_id}', [ProjectController::class, 'update']);
-    Route::get('/projects/export/{format}', [ProjectController::class, 'exportList'])->name('exportList');
+    Route::get('/projects/exportList/{format}', [ProjectController::class, 'exportListProject'])->name('exportListProject');
     Route::delete('projects/{project}/force-delete', [ProjectController::class, 'destroy'])->name('projects.force-delete');
     Route::get('projects/restore/{project}', [ProjectController::class, 'restore'])->name('projects.restore');
     Route::resource('projects', ProjectController::class);
+    Route::get('/projects/exportLog/{format}', [ProjectController::class, 'exportLogProject'])->name('exportLogProject');
 
     Route::resource('groups', GroupController::class);
     Route::get('/groups/{group}/restore', [GroupController::class, 'restore'])->name('groups.restore');

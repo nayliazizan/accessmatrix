@@ -39,6 +39,7 @@ trait LogsChanges
             'user_id' => auth()->id(),
             'table_name' => $model->getTable(),
             'record_id' => $model->getKey(),
+            'record_name' => self::getRecordName($model),
             'old_value' => null,
             'new_value' => null,
         ];
@@ -60,6 +61,9 @@ trait LogsChanges
                 // Save the changed values in new_value
                 $data['new_value'] = json_encode(array_intersect_key($model->getAttributes(), $changedColumns));
             }
+        } elseif ($action === 'create') {
+            // Capture all model attributes as the new value for creates
+            $data['new_value'] = json_encode($model->getAttributes());
         } else {
             // For other actions, set the column_name to null
             $data['column_name'] = null;
@@ -67,6 +71,22 @@ trait LogsChanges
         
         return $data;
         
+    }
+
+    protected static function getRecordName($model)
+    {
+        switch ($model->getTable()) {
+            case 'staffs':
+                return $model->staff_id_rw;
+            case 'licenses':
+                return $model->license_name;
+            case 'projects':
+                return $model->project_name;
+            case 'groups':
+                return $model->group_name;
+            default:
+                return ''; 
+        }
     }
 
     protected static function getUpdatedColumnName($model)

@@ -16,6 +16,7 @@ class Log extends Model
         'table_name',
         'column_name',
         'record_id',
+        'record_name',
         'old_value',
         'new_value',
     ];

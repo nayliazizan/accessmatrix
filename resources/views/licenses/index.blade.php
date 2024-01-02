@@ -42,8 +42,8 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p>Choose in what format you want the record to be exported:</p>
-                <a href="{{ route('exportListLicense', ['format' => 'csv']) }}" class="btn btn-primary">CSV</a>
+                <p>Choose the format you want the list to be exported:</p>
+                <a href="{{ route('exportListLicense', ['format' => 'xls']) }}" class="btn btn-primary">XLS</a>
                 <a href="{{ route('exportListLicense', ['format' => 'pdf']) }}" class="btn btn-primary">PDF</a>
             </div>
         </div>
@@ -59,13 +59,13 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exportLogChangesModalLabel">Export List Options</h5>
+                <h5 class="modal-title" id="exportLogChangesModalLabel">Export Log Options</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p>Choose which log you want to export:</p>
+                <p>Choose the format you want the list to be exported:</p>
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exportFormatLogModal">
                     LICENSES
                 </button>
@@ -88,8 +88,8 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p>Choose in what format you want the record to be exported:</p>
-                <a href="{{ route('exportLogLicense', ['format' => 'csv']) }}" class="btn btn-primary">CSV</a>
+                <p>Choose the format you want the log to be exported:</p>
+                <a href="{{ route('exportLogLicense', ['format' => 'xls']) }}" class="btn btn-primary">XLS</a>
                 <a href="{{ route('exportLogLicense', ['format' => 'pdf']) }}" class="btn btn-primary">PDF</a>
             </div>
         </div>
