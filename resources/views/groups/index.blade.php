@@ -27,21 +27,53 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exportModalLabel">Export Report</h5>
+                <h5 class="modal-title" id="exportModalLabel">Export List</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p>Which format do you want the record to be exported?</p>
+                <p>Which format do you want the list to be exported?</p>
             </div>
             <div class="modal-footer">
                 <!-- Button to export as CSV -->
-                <form action="{{ route('groups.export', ['format' => 'csv']) }}" method="GET">
-                    <button type="submit" class="btn btn-success">CSV</button>
+                <form action="{{ route('exportListGroup', ['format' => 'xls']) }}" method="GET">
+                    <button type="submit" class="btn btn-success">XLS</button>
                 </form>
                 <!-- Button to export as PDF -->
-                <form action="{{ route('groups.export', ['format' => 'pdf']) }}" method="GET">
+                <form action="{{ route('exportListGroup', ['format' => 'pdf']) }}" method="GET">
+                    <button type="submit" class="btn btn-danger">PDF</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button type="button" class="btn btn-info" data-toggle="modal" data-target="#exportLogChangesModal">
+    LOG CHANGES
+</button>
+
+<!-- Export Report Modal -->
+<div class="modal fade" id="exportLogChangesModal" tabindex="-1" role="dialog" aria-labelledby="exportLogChangesModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportLogChangesModalLabel">Export Log</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Which format do you want the log to be exported?</p>
+            </div>
+            <div class="modal-footer">
+                <!-- Button to export as CSV -->
+                <form action="{{ route('exportLogGroup', ['format' => 'xls']) }}" method="GET">
+                    <button type="submit" class="btn btn-success">XLS</button>
+                </form>
+                <!-- Button to export as PDF -->
+                <form action="{{ route('exportLogGroup', ['format' => 'pdf']) }}" method="GET">
                     <button type="submit" class="btn btn-danger">PDF</button>
                 </form>
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>

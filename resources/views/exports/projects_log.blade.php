@@ -18,6 +18,7 @@
 
     th {
         background-color: #f2f2f2;
+        text-align: center;
     }
 
     h2 {
@@ -26,37 +27,32 @@
     
 </style>
 
-<h2>All Projects' Log</h2>
+<h2>ALL PROJECTS LOG</h2>
 
 <table>
     <thead>
         <tr>
-            <th>#</th>
-            <th>Type of Action</th>
-            <th>User ID</th>
-            <th>User Name</th>
-            <th>Table Name</th>
-            <th>Column Name</th>
-            <th>Record ID</th>
-            <th>Old Value</th>
-            <th>New Value</th>
-            <th>Time</th>
+            <th>LOG ID</th>
+            <th>USER</th>
+            <th>TYPE OF ACTION</th>
+            <th>RECORD NAME</th>
+            <th>COLUMN NAME</th>
+            <th>OLD VALUE</th>
+            <th>NEW VALUE</th>
+            <th>TIME</th>
         </tr>
     </thead>
     <tbody>
         @foreach($logs as $log)
             <tr>
                 <td>{{ $log->log_id }}</td>
-                <td>{{ $log->type_action }}</td>
-                <td>{{ $log->user_id }}</td>
                 <td>{{ $log->user_name }}</td>
-                <td>{{ $log->table_name }}</td>
+                <td>{{ $log->type_action }}</td>
+                <td>{{ $log->record_name }}</td>
                 <td>{{ $log->column_name }}</td>
-                <td>{{ $log->record_id }}</td>
                 <td>{{ $log->old_value }}</td>
                 <td>{{ $log->new_value }}</td>
                 <td>{{ $log->created_at }}</td>
-
             </tr>
         @endforeach
     </tbody>

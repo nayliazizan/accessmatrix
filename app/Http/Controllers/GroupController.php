@@ -21,6 +21,11 @@ use PDF;
 
 use App\Models\GroupLicenseLog;
 use App\Models\GroupProjectLog;
+use App\Models\Log;
+
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\Exportable;
 
 class GroupController extends Controller
 {
@@ -66,6 +71,26 @@ class GroupController extends Controller
         // Attach projects by IDs
         $projects = $request->input('projects', []);
         $group->projects()->attach($projects, ['project_name' => '']);
+
+            // Log creations for group licenses
+    foreach ($licenses as $licenseId) {
+        GroupLicenseLog::create([
+            'user_id' => auth()->id(),
+            'group_id' => $group->group_id,
+            'license_id' => $licenseId,
+            'action_type' => 'create',
+        ]);
+    }
+
+    // Log creations for group projects
+    foreach ($projects as $projectId) {
+        GroupProjectLog::create([
+            'user_id' => auth()->id(),
+            'group_id' => $group->group_id,
+            'project_id' => $projectId,
+            'action_type' => 'create',
+        ]);
+    }
 
         return redirect()->route('groups.index');
     }
@@ -213,23 +238,58 @@ class GroupController extends Controller
 
 
 
-    public function exportGroups($format)
+    public function exportListGroup($format)
     {
-        if ($format === 'csv') {
-            return Excel::download(new GroupsExport, 'groups_report.csv');
+        if ($format === 'xls') {
+            return Excel::download(new GroupListExport, 'groups_list.xls');
         } elseif ($format === 'pdf') {
             // Example using barryvdh/laravel-dompdf:
             $pdf = PDF::loadView('exports.groups_list', ['groups' => Group::withTrashed()->get()]);
-            return $pdf->download('groups_report.pdf');
+            return $pdf->download('groups_list.pdf');
         } else {
             return redirect()->route('groups.index')->with('error', 'Invalid export format.');
         }
     }
 
+    public function exportLogGroup($format)
+    {
+        switch ($format) {
+            case 'xls':
+                return Excel::download(new GroupLogExport, 'groups_log.xls');
+                break;
+            case 'pdf':
+                $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+                ->where('logs.table_name', 'groups')
+                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+                ->get();
+                $pdf = PDF::loadView('exports.groups_log', ['logs' => $logs]);
+                return $pdf->download('groups_log.pdf');
+                break;
+            default:
+                return redirect('/groups')->with('error', 'Invalid export format');
+        }
+    }
+
 }
 
-class GroupsExport implements FromCollection, WithHeadings
+class GroupListExport implements FromCollection, WithHeadings, WithStyles
 {
+    use Exportable;
+
+    public function headings(): array
+    {
+        return [
+            'GROUP ID',
+            'GROUP NAME',
+            'GROUP DESCRIPTION',
+            'LICENSE NAME',
+            'PROJECT NAME',
+            'TIME CREATED',
+            'TIME UPDATED',
+            'TIME DELETED',
+        ];
+    }
+
     public function collection()
     {
         // Fetch necessary data for CSV export
@@ -254,17 +314,99 @@ class GroupsExport implements FromCollection, WithHeadings
         return collect($data);
     }
 
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:H1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 10,
+            'B' => 30,
+            'C' => 30,
+            'D' => 30,
+            'E' => 30,
+            'F' => 19,
+            'G' => 19,
+            'H' => 19,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+
+        $columnsToWrap = ['C', 'D', 'E'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
+    }
+}
+
+class GroupLogExport implements FromCollection, WithHeadings, WithStyles
+{
+    use Exportable;
+
     public function headings(): array
     {
         return [
-            'Group ID',
-            'Group Name',
-            'Group Description',
-            'License Name',
-            'Project Name',
-            'Time Created',
-            'Time Updated',
-            'Time Deleted',
+            'LOG ID',
+            'USER ID',
+            'USER NAME',
+            'TYPE OF ACTION',
+            'TABLE NAME',
+            'RECORD ID',
+            'RECORD NAME',
+            'COLUMN NAME',
+            'OLD VALUE',
+            'NEW VALUE',
+            'TIME',
         ];
     }
+
+    public function collection()
+    {
+        return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+            ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+            ->where('logs.table_name', 'groups') // Add the condition for table_name
+            ->get();
+    }
+    
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:K1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 14,
+            'B' => 8,
+            'C' => 20,
+            'D' => 8,
+            'E' => 12,
+            'F' => 9,
+            'G' => 30,
+            'H' => 13,
+            'I' => 30,
+            'J' => 30,
+            'K' => 27,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+
+        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
+    }
+
 }

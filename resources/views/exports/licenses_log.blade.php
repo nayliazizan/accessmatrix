@@ -32,7 +32,7 @@
 <table>
     <thead>
         <tr>
-            <th>#</th>
+            <th>LOG ID</th>
             <th>USER</th>
             <th>TYPE OF ACTION</th>
             <th>RECORD NAME</th>

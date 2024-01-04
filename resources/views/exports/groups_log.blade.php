@@ -27,28 +27,32 @@
     
 </style>
 
-<h2>ALL PROJECTS LIST</h2>
+<h2>ALL GROUPS LOG</h2>
 
 <table>
     <thead>
         <tr>
-            <th>PROJECT ID</th>
-            <th>PROJECT NAME</th>
-            <th>PROJECT DESCRIPTION</th>
-            <th>TIME CREATED</th>
-            <th>TIME UPDATED</th>
-            <th>TIME DELETED</th>
+            <th>LOG ID</th>
+            <th>USER</th>
+            <th>TYPE OF ACTION</th>
+            <th>RECORD NAME</th>
+            <th>COLUMN NAME</th>
+            <th>OLD VALUE</th>
+            <th>NEW VALUE</th>
+            <th>TIME</th>
         </tr>
     </thead>
     <tbody>
-        @foreach($projects as $project)
+        @foreach($logs as $log)
             <tr>
-                <td>{{ $project->project_id }}</td>
-                <td>{{ $project->project_name }}</td>
-                <td>{{ $project->project_desc }}</td>
-                <td>{{ $project->created_at }}</td>
-                <td>{{ $project->updated_at }}</td>
-                <td>{{ $project->deleted_at }}</td>
+                <td>{{ $log->log_id }}</td>
+                <td>{{ $log->user_name }}</td>
+                <td>{{ $log->type_action }}</td>
+                <td>{{ $log->record_name }}</td>
+                <td>{{ $log->column_name }}</td>
+                <td>{{ $log->old_value }}</td>
+                <td>{{ $log->new_value }}</td>
+                <td>{{ $log->created_at }}</td>
             </tr>
         @endforeach
     </tbody>

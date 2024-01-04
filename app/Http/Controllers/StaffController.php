@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Staff;
 use App\Models\Group;
+use App\Models\Log;
 use Illuminate\Validation\Rule;
 
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,12 @@ use PDF;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Response;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\Exportable;
+
 
 class StaffController extends Controller
 {
@@ -22,7 +29,8 @@ class StaffController extends Controller
     public function index()
     {
         $staffs = Staff::with('group')->get();
-        return view('staffs.index', compact('staffs'));
+        $groups = Group::all();
+        return view('staffs.index', compact('staffs', 'groups'));
     }
 
     // Show the form for creating a new staff
@@ -86,32 +94,71 @@ class StaffController extends Controller
         return redirect()->route('staffs.index')->with('success', 'Staff deleted successfully!');
     }
 
-    public function exportStaffs($format)
+    public function exportListStaff(Request $request)
     {
-        $staffs = Staff::all();
-        $groups = Group::all(); // Fetch all groups
-
-        if ($format === 'csv') {
-            return Excel::download(new StaffsExport, 'staffs_report.csv');
+        $format = $request->input('format');
+        $group = $request->input('group');
+    
+        $staffsQuery = Staff::query();
+    
+        $groupName = ($group !== 'all') ? Group::find($group)->group_name : 'All Groups';
+    
+        if ($group !== 'all') {
+            $staffsQuery->where('group_id', $group);
+        }
+    
+        $staffs = $staffsQuery->get();
+    
+        if ($format === 'xls') {
+            return Excel::download(new StaffListExport($staffs), 'staffs_' . str_replace(' ', '_', $groupName) . '_list.xls');
         } elseif ($format === 'pdf') {
-            $pdf = PDF::loadView('exports.staffs_list', ['staffs' => $staffs, 'groups' => $groups]);
-            return $pdf->download('staffs_report.pdf');
+            $pdf = PDF::loadView('exports.staffs_list', ['staffs' => $staffs, 'groupName' => $groupName]);
+            return $pdf->download('staffs_' . str_replace(' ', '_', $groupName) . '_list.pdf');
         } else {
             return redirect()->route('staffs.index')->with('error', 'Invalid export format.');
         }
     }
+
+    public function exportLogStaff($format)
+    {
+        switch ($format) {
+            case 'xls':
+                return Excel::download(new StaffLogExport, 'staffs_log.xls');
+                break;
+            case 'pdf':
+                $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+                ->where('logs.table_name', 'staffs')
+                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+                ->get();
+                $pdf = PDF::loadView('exports.staffs_log', ['logs' => $logs]);
+                return $pdf->download('staffs_log.pdf');
+                break;
+            default:
+                return redirect('/groups')->with('error', 'Invalid export format');
+        }
+    }
+    
 }
 
-class StaffsExport implements FromCollection, WithHeadings
+class StaffListExport implements FromCollection, WithHeadings, WithStyles
 {
+    protected $staffs;
+
+    public function __construct($staffs)
+    {
+        $this->staffs = $staffs;
+    }
+
     public function collection()
     {
-        // Perform a join operation to get the desired columns
-        $staffs = DB::table('staffs')
-            ->join('groups', 'staffs.group_id', '=', 'groups.group_id')
-            ->select(
+        return Staff::leftJoin('groups', 'staffs.group_id', '=', 'groups.group_id')
+            ->when($this->staffs, function ($query) {
+                $query->whereIn('staff_id', $this->staffs->pluck('staff_id'));
+            })
+            ->get([
                 'staffs.staff_id',
-                'groups.group_name',
+                'staffs.group_id',
+                'groups.group_name', // Use 'groups.group_name' instead of 'group.group_name'
                 'staffs.staff_id_rw',
                 'staffs.staff_name',
                 'staffs.dept_id',
@@ -119,24 +166,114 @@ class StaffsExport implements FromCollection, WithHeadings
                 'staffs.status',
                 'staffs.created_at',
                 'staffs.updated_at',
-            )
-            ->get();
-
-        return $staffs;
+            ]);
     }
 
     public function headings(): array
     {
         return [
-            'Staff ID',
-            'Group',
-            'Staff ID (RW)',
-            'Staff Name',
-            'Department ID',
-            'Department Name',
-            'Status',
-            'Time Created',
-            'Time Updated',
+            'STAFF ID',
+            'GROUP ID',
+            'GROUP NAME',
+            'STAFF ID (RW)',
+            'STAFF NAME',
+            'DEPARTMENT ID',
+            'DEPARTMENT NAME',
+            'STATUS',
+            'TIME CREATED',
+            'TIME UPDATED',
         ];
     }
+
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:J1')->applyFromArray([
+            'font' => ['bold' => true],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 9,
+            'B' => 10,
+            'C' => 17,
+            'D' => 13,
+            'E' => 12,
+            'F' => 15,
+            'G' => 23,
+            'H' => 9,
+            'I' => 19,
+            'J' => 19,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+    }
+}
+
+class StaffLogExport implements FromCollection, WithHeadings, WithStyles
+{
+    use Exportable;
+
+    public function headings(): array
+    {
+        return [
+            'LOG ID',
+            'USER ID',
+            'USER NAME',
+            'TYPE OF ACTION',
+            'TABLE NAME',
+            'RECORD ID',
+            'RECORD NAME',
+            'COLUMN NAME',
+            'OLD VALUE',
+            'NEW VALUE',
+            'TIME',
+        ];
+    }
+
+    public function collection()
+    {
+        return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+            ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+            ->where('logs.table_name', 'staffs') // Add the condition for table_name
+            ->get();
+    }
+    
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:K1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 14,
+            'B' => 8,
+            'C' => 20,
+            'D' => 8,
+            'E' => 12,
+            'F' => 9,
+            'G' => 30,
+            'H' => 13,
+            'I' => 30,
+            'J' => 30,
+            'K' => 27,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+
+        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
+    }
+
 }

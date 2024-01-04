@@ -171,7 +171,7 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
     public function headings(): array
     {
         return [
-            '#',
+            'LOG ID',
             'USER ID',
             'USER NAME',
             'TYPE OF ACTION',

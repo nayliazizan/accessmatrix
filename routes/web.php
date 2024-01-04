@@ -59,12 +59,15 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('groups', GroupController::class);
     Route::get('/groups/{group}/restore', [GroupController::class, 'restore'])->name('groups.restore');
-    Route::get('/groups/export/{format}', [GroupController::class, 'exportGroups'])->name('groups.export');
+    Route::get('/groups/exportList/{format}', [GroupController::class, 'exportListGroup'])->name('exportListGroup');
+    Route::get('/groups/exportLog/{format}', [GroupController::class, 'exportLogGroup'])->name('exportLogGroup');
     Route::get('groups/{group}/show_staff', [GroupController::class, 'show_staff'])->name('groups.show_staff');
 
 
     Route::resource('staffs', StaffController::class);
-    Route::get('/staff/export/{format}', [StaffController::class, 'exportStaffs'])->name('staffs.export');
+    Route::post('/staffs/exportList', [StaffController::class, 'exportListStaff'])->name('exportListStaff');
+    Route::get('/staffs/exportLog/{format}', [StaffController::class, 'exportLogStaff'])->name('exportLogStaff');
+
 
     Route::get('/counter', function () {return view('counter');});
 

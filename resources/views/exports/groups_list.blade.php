@@ -1,38 +1,45 @@
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed; /* Fixed layout to evenly distribute column widths */
+    }
 
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-    
-        th, td {
-            border: 1px solid #dddddd;
-            text-align: left;
-            padding: 8px;
-        }
-    
-        th {
-            background-color: #f2f2f2;
-        }
-    
-        h2 {
-            text-align: center;
-        }
-    </style>
+    th, td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+        white-space: normal; /* Prevent text from wrapping */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Display ellipsis for overflowed text */
+        font-size: 12px; /* Adjust font size as needed */
+        word-wrap: break-word;
+    }
 
-<h2>All Groups Record</h2>
+    th {
+        background-color: #f2f2f2;
+        text-align: center;
+    }
+
+    h2 {
+        text-align: center;
+    }
+    
+</style>
+
+<h2>ALL GROUPS LIST</h2>
 
 <table>
     <thead>
         <tr>
-            <th>Group ID</th>
-            <th>Group Name</th>
-            <th>Group Description</th>
-            <th>License Name</th>
-            <th>Project Name</th>
-            <th>Time Created</th>
-            <th>Time Updated</th>
-            <th>Time Deleted</th>
+            <th>GROUP ID</th>
+            <th>GROUP NAME</th>
+            <th>GROUP DESCRIPTION</th>
+            <th>LICENSE NAME</th>
+            <th>PROJECT NAME</th>
+            <th>TIME CREATED</th>
+            <th>TIME UPDATED</th>
+            <th>TIME DELETED</th>
         </tr>
     </thead>
     <tbody>

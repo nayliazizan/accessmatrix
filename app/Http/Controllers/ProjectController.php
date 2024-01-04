@@ -101,10 +101,10 @@ class ProjectController extends Controller
             case 'pdf':
                 $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
                 ->where('logs.table_name', 'projects') // Add the condition for table_name
-                ->select('logs.log_id', 'logs.type_action', 'logs.user_id', 'users.name as user_name', 'logs.table_name', 'logs.column_name', 'logs.record_id', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
                 ->get();
                 $pdf = PDF::loadView('exports.projects_log', ['logs' => $logs]);
-                return $pdf->download('project_log.pdf');
+                return $pdf->download('projects_log.pdf');
                 break;
             default:
                 return redirect('/projects')->with('error', 'Invalid export format');
@@ -119,12 +119,12 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles
     public function headings(): array
     {
         return [
-            'Project ID',
-            'Project Name',
-            'Project Description',
-            'Time Created',
-            'Time Updated',
-            'Time Deleted',
+            'PROJECT ID',
+            'PROJECT NAME',
+            'PROJECT DESCRIPTION',
+            'TIME CREATED',
+            'TIME UPDATED',
+            'TIME DELETED',
         ];
     }
 
@@ -139,9 +139,8 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles
     {
         // Bold the headers
         $sheet->getStyle('A1:F1')->applyFromArray([
-            'font' => [
-                'bold' => true,
-            ],
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
         // Adjust column widths
@@ -157,6 +156,12 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles
         foreach ($columnWidths as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
+
+        $columnsToWrap = ['C'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
     }
 }
 
@@ -167,22 +172,23 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
     public function headings(): array
     {
         return [
-            '#',
-            'Type of Action',
-            'User ID',
-            'User Name',
-            'Table Name',
-            'Column Name',
-            'Record ID',
-            'Old Value',
-            'New Value',
-            'Time',
+            'LOG ID',
+            'USER ID',
+            'USER NAME',
+            'TYPE OF ACTION',
+            'TABLE NAME',
+            'RECORD ID',
+            'RECORD NAME',
+            'COLUMN NAME',
+            'OLD VALUE',
+            'NEW VALUE',
+            'TIME',
         ];
     }
 
     public function collection()
     {
-        return Log::select('logs.log_id', 'logs.type_action', 'logs.user_id', 'users.name as user_name', 'logs.table_name', 'logs.column_name', 'logs.record_id', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+        return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
             ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
             ->where('logs.table_name', 'projects') // Add the condition for table_name
             ->get();
@@ -192,31 +198,31 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
     public function styles(Worksheet $sheet)
     {
         // Bold the headers
-        $sheet->getStyle('A1:J1')->applyFromArray([
-            'font' => [
-                'bold' => true,
-            ],
+        $sheet->getStyle('A1:K1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
         // Adjust column widths
         $columnWidths = [
-            'A' => 10,
-            'B' => 20,
-            'C' => 15,
-            'D' => 20,
-            'E' => 20,
-            'F' => 20,
-            'G' => 15,
-            'H' => 30,
+            'A' => 14,
+            'B' => 8,
+            'C' => 20,
+            'D' => 8,
+            'E' => 12,
+            'F' => 9,
+            'G' => 30,
+            'H' => 13,
             'I' => 30,
-            'J' => 27,
+            'J' => 30,
+            'K' => 27,
         ];
 
         foreach ($columnWidths as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['F', 'H', 'I'];
+        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);

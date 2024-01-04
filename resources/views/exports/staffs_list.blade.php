@@ -1,4 +1,3 @@
-<!-- resources/views/exports/staffs_list.blade.php -->
 <style>
     table {
         width: 100%;
@@ -19,6 +18,7 @@
 
     th {
         background-color: #f2f2f2;
+        text-align: center;
     }
 
     h2 {
@@ -27,27 +27,29 @@
     
 </style>
 
-<h2>All Staff Record</h2>
+<h2>ALL STAFF LIST</h2>
 
 <table>
     <thead>
         <tr>
-            <th>Staff ID</th>
-            <th>Group</th>
-            <th>Staff ID (RW)</th>
-            <th>Staff Name</th>
-            <th>Department ID</th>
-            <th>Department Name</th>
-            <th>Status</th>
-            <th>Time Created</th>
-            <th>Time Updated</th>
+            <th>STAFF ID</th>
+            <th>GROUP ID</th>
+            <th>GROUP NAME</th>
+            <th>STAFF ID (RW)</th>
+            <th>STAFF NAME</th>
+            <th>DEPARTMENT ID</th>
+            <th>DEPARTMENT NAME</th>
+            <th>STATUS</th>
+            <th>TIME CREATED</th>
+            <th>TIME UPDATED</th>
         </tr>
     </thead>
     <tbody>
         @foreach($staffs as $staff)
             <tr>
                 <td>{{ $staff->staff_id }}</td>
-                <td>{{ $groups->where('group_id', $staff->group_id)->first()->group_name }}</td>
+                <td>{{ $staff->group_id }}</td>
+                <td>{{ $staff->group->group_name }}</td>
                 <td>{{ $staff->staff_id_rw }}</td>
                 <td>{{ $staff->staff_name }}</td>
                 <td>{{ $staff->dept_id }}</td>
@@ -57,5 +59,5 @@
                 <td>{{ $staff->updated_at }}</td>
             </tr>
         @endforeach
-    </tbody>
+    </tbody>    
 </table>
