@@ -7,12 +7,15 @@ use App\Models\Log;
 
 //for EXPORT module
 use Maatwebsite\Excel\Facades\Excel;
-use PDF;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
+
+use Barryvdh\DomPDF\Facade as PDF;
 
 class LicenseController extends Controller
 {
@@ -82,9 +85,10 @@ class LicenseController extends Controller
                 return Excel::download(new LicenseListExport, 'licenses_list.xls');
                 break;
             case 'pdf':
-                $licenses = License::withTrashed()->get();
-                $pdf = PDF::loadView('exports.licenses_list', ['licenses' => $licenses]);
-                return $pdf->download('licenses.pdf');
+                $pdf = app('dompdf.wrapper');  // Create an instance of the PDF facade
+                $pdf->loadView('exports.licenses_list', ['licenses' => License::withTrashed()->get()]);
+                return $pdf->download('licenses_list.pdf');
+
                 break;
             default:
                 return redirect('/licenses')->with('error', 'Invalid export format');
@@ -98,11 +102,24 @@ class LicenseController extends Controller
                 return Excel::download(new LicenseLogChangesExport, 'licenses_log.xls');
                 break;
             case 'pdf':
+                $pdf = app('dompdf.wrapper');
                 $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
                 ->where('logs.table_name', 'licenses')
-                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+                ->select(
+                'logs.log_id',
+                'logs.user_id', 
+                'users.name as user_name', 
+                'logs.type_action',
+                'logs.table_name',
+                'logs.record_id', 
+                'logs.record_name', 
+                'logs.column_name', 
+                'logs.old_value', 
+                'logs.new_value', 
+                'logs.created_at')
                 ->get();
-                $pdf = PDF::loadView('exports.licenses_log', ['logs' => $logs]);
+                $pdf->setPaper('A4', 'landscape');
+                $pdf->loadView('exports.licenses_log', ['logs' => $logs]);
                 return $pdf->download('licenses_log.pdf');
                 break;
             default:
@@ -111,7 +128,7 @@ class LicenseController extends Controller
     }
 }
 
-class LicenseListExport implements FromCollection, WithHeadings, WithStyles
+class LicenseListExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
     use Exportable;
 
@@ -144,7 +161,7 @@ class LicenseListExport implements FromCollection, WithHeadings, WithStyles
 
         // Adjust column widths
         $columnWidths = [
-            'A' => 15,
+            'A' => 11,
             'B' => 30,
             'C' => 30,
             'D' => 27,
@@ -156,15 +173,27 @@ class LicenseListExport implements FromCollection, WithHeadings, WithStyles
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['C'];
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F',];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);
         }
+        
     }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+            },
+        ];
+    }
+
 }
 
-class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyles
+class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
     use Exportable;
 
@@ -201,30 +230,42 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
+        $sheet->freezePane('A1');
+
         // Adjust column widths
         $columnWidths = [
-            'A' => 14,
-            'B' => 8,
-            'C' => 20,
-            'D' => 8,
-            'E' => 12,
+            'A' => 9,
+            'B' => 6,
+            'C' => 11,
+            'D' => 9,
+            'E' => 8,
             'F' => 9,
-            'G' => 30,
-            'H' => 13,
-            'I' => 30,
-            'J' => 30,
-            'K' => 27,
+            'G' => 16,
+            'H' => 12,
+            'I' => 15,
+            'J' => 15,
+            'K' => 20,
         ];
 
         foreach ($columnWidths as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);
         }
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+            },
+        ];
     }
 
 }

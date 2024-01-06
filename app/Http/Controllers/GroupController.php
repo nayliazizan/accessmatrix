@@ -17,7 +17,7 @@ use Illuminate\Http\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use PDF;
+use Barryvdh\DomPDF\Facade as PDF;
 
 use App\Models\GroupLicenseLog;
 use App\Models\GroupProjectLog;
@@ -26,6 +26,18 @@ use App\Models\Log;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\Exportable;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
+
+use Barryvdh\Snappy\Facades\SnappyPdf;
+use Illuminate\Contracts\View\View;
+use Maatwebsite\Excel\Concerns\FromView;
+use Dompdf\Dompdf;
+
 
 class GroupController extends Controller
 {
@@ -72,25 +84,25 @@ class GroupController extends Controller
         $projects = $request->input('projects', []);
         $group->projects()->attach($projects, ['project_name' => '']);
 
-            // Log creations for group licenses
-    foreach ($licenses as $licenseId) {
-        GroupLicenseLog::create([
-            'user_id' => auth()->id(),
-            'group_id' => $group->group_id,
-            'license_id' => $licenseId,
-            'action_type' => 'create',
-        ]);
-    }
+        // Log creations for group licenses
+        foreach ($licenses as $licenseId) {
+            GroupLicenseLog::create([
+                'user_id' => auth()->id(),
+                'group_id' => $group->group_id,
+                'license_id' => $licenseId,
+                'action_type' => 'create',
+            ]);
+        }
 
-    // Log creations for group projects
-    foreach ($projects as $projectId) {
-        GroupProjectLog::create([
-            'user_id' => auth()->id(),
-            'group_id' => $group->group_id,
-            'project_id' => $projectId,
-            'action_type' => 'create',
-        ]);
-    }
+        // Log creations for group projects
+        foreach ($projects as $projectId) {
+            GroupProjectLog::create([
+                'user_id' => auth()->id(),
+                'group_id' => $group->group_id,
+                'project_id' => $projectId,
+                'action_type' => 'create',
+            ]);
+        }
 
         return redirect()->route('groups.index');
     }
@@ -243,8 +255,8 @@ class GroupController extends Controller
         if ($format === 'xls') {
             return Excel::download(new GroupListExport, 'groups_list.xls');
         } elseif ($format === 'pdf') {
-            // Example using barryvdh/laravel-dompdf:
-            $pdf = PDF::loadView('exports.groups_list', ['groups' => Group::withTrashed()->get()]);
+            $pdf = app('dompdf.wrapper');  // Create an instance of the PDF facade
+            $pdf->loadView('exports.groups_list', ['groups' => Group::withTrashed()->get()]);
             return $pdf->download('groups_list.pdf');
         } else {
             return redirect()->route('groups.index')->with('error', 'Invalid export format.');
@@ -255,16 +267,72 @@ class GroupController extends Controller
     {
         switch ($format) {
             case 'xls':
-                return Excel::download(new GroupLogExport, 'groups_log.xls');
+                $combinedLogsExport = new GroupLogXlsExport();
+                return Excel::download($combinedLogsExport, 'groups_log.xls');
                 break;
             case 'pdf':
-                $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-                ->where('logs.table_name', 'groups')
-                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
-                ->get();
-                $pdf = PDF::loadView('exports.groups_log', ['logs' => $logs]);
-                return $pdf->download('groups_log.pdf');
+                // Fetch data for all three tables
+                $generalLogs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+                    ->where('logs.table_name', 'groups')
+                    ->select(
+                        'logs.log_id',
+                        'logs.user_id',
+                        'users.name as user_name',
+                        'logs.type_action',
+                        'logs.table_name',
+                        'logs.record_id',
+                        'logs.record_name',
+                        'logs.column_name',
+                        'logs.old_value',
+                        'logs.new_value',
+                        'logs.created_at'
+                    )
+                    ->get();
+
+                $licenseLogs = GroupLicenseLog::leftJoin('users', 'group_license_logs.user_id', '=', 'users.user_id')
+                    ->leftJoin('groups', 'group_license_logs.group_id', '=', 'groups.group_id')
+                    ->leftJoin('licenses', 'group_license_logs.license_id', '=', 'licenses.license_id')
+                    ->select(
+                        'group_license_logs.id',
+                        'group_license_logs.user_id',
+                        'users.name as user_name',
+                        'group_license_logs.action_type',
+                        'group_license_logs.group_id',
+                        'groups.group_name',
+                        'group_license_logs.license_id',
+                        'licenses.license_name',
+                        'group_license_logs.created_at'
+                    )
+                    ->get();
+
+                $projectLogs = GroupProjectLog::leftJoin('users', 'group_project_logs.user_id', '=', 'users.user_id')
+                    ->leftJoin('groups', 'group_project_logs.group_id', '=', 'groups.group_id')
+                    ->leftJoin('projects', 'group_project_logs.project_id', '=', 'projects.project_id')
+                    ->select(
+                        'group_project_logs.id',
+                        'group_project_logs.user_id',
+                        'users.name as user_name',
+                        'group_project_logs.action_type',
+                        'group_project_logs.group_id',
+                        'groups.group_name',
+                        'group_project_logs.project_id',
+                        'projects.project_name',
+                        'group_project_logs.created_at'
+                    )
+                    ->get();
+
+                // Prepare HTML content for the PDF
+                $html = view('exports.groups_log', compact('generalLogs', 'licenseLogs', 'projectLogs'))->render();
+
+                // Generate PDF
+                $dompdf = new Dompdf();
+                $dompdf->loadHtml($html);
+                $dompdf->setPaper('A4', 'landscape');  // Adjust as needed
+                $dompdf->render();
+
+                return $dompdf->stream('groups_log.pdf');
                 break;
+
             default:
                 return redirect('/groups')->with('error', 'Invalid export format');
         }
@@ -272,7 +340,7 @@ class GroupController extends Controller
 
 }
 
-class GroupListExport implements FromCollection, WithHeadings, WithStyles
+class GroupListExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
     use Exportable;
 
@@ -338,17 +406,57 @@ class GroupListExport implements FromCollection, WithHeadings, WithStyles
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['C', 'D', 'E'];
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);
         }
     }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+            },
+        ];
+    }
 }
 
-class GroupLogExport implements FromCollection, WithHeadings, WithStyles
+class GroupLogXlsExport implements WithMultipleSheets
 {
-    use Exportable;
+    public function sheets(): array
+    {
+        return [
+            new GeneralLogsSheet(),
+            new LicenseLogsSheet(),
+            new ProjectLogsSheet(),
+        ];
+    }
+}
+
+class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents
+{
+    public function collection()
+    {
+        return Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
+            ->where('logs.table_name', 'groups')
+            ->select(
+                'logs.log_id',
+                'logs.user_id',
+                'users.name as user_name',
+                'logs.type_action',
+                'logs.table_name',
+                'logs.record_id',
+                'logs.record_name',
+                'logs.column_name',
+                'logs.old_value',
+                'logs.new_value',
+                'logs.created_at'
+            )
+            ->get();
+    }
 
     public function headings(): array
     {
@@ -367,14 +475,6 @@ class GroupLogExport implements FromCollection, WithHeadings, WithStyles
         ];
     }
 
-    public function collection()
-    {
-        return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
-            ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-            ->where('logs.table_name', 'groups') // Add the condition for table_name
-            ->get();
-    }
-    
     public function styles(Worksheet $sheet)
     {
         // Bold the headers
@@ -383,30 +483,202 @@ class GroupLogExport implements FromCollection, WithHeadings, WithStyles
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
+        $sheet->freezePane('A1');
+
         // Adjust column widths
         $columnWidths = [
-            'A' => 14,
-            'B' => 8,
-            'C' => 20,
-            'D' => 8,
-            'E' => 12,
+            'A' => 9,
+            'B' => 6,
+            'C' => 11,
+            'D' => 9,
+            'E' => 8,
             'F' => 9,
-            'G' => 30,
-            'H' => 13,
-            'I' => 30,
-            'J' => 30,
-            'K' => 27,
+            'G' => 16,
+            'H' => 12,
+            'I' => 15,
+            'J' => 15,
+            'K' => 20,
         ];
 
         foreach ($columnWidths as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);
         }
     }
 
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+                $event->sheet->setTitle('General Logs');
+            },
+        ];
+    }
+}
+
+class LicenseLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents
+{
+    public function collection()
+    {
+        return GroupLicenseLog::leftJoin('users', 'group_license_logs.user_id', '=', 'users.user_id')
+            ->leftJoin('groups', 'group_license_logs.group_id', '=', 'groups.group_id')
+            ->leftJoin('licenses', 'group_license_logs.license_id', '=', 'licenses.license_id')
+            ->select(
+                'group_license_logs.id',
+                'group_license_logs.user_id',
+                'users.name as user_name',
+                'group_license_logs.action_type',
+                'group_license_logs.group_id',
+                'groups.group_name',
+                'group_license_logs.license_id',
+                'licenses.license_name',
+                'group_license_logs.created_at'
+            )
+            ->get();
+    }
+
+    public function headings(): array
+    {
+        return [
+            'ID',
+            'USER ID',
+            'USER NAME',
+            'TYPE OF ACTION',
+            'GROUP ID',
+            'GROUP NAME',
+            'LICENSE ID',
+            'LICENSE NAME',
+            'TIME',
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:I1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 9,
+            'B' => 6,
+            'C' => 11,
+            'D' => 9,
+            'E' => 9,
+            'F' => 16,
+            'G' => 9,
+            'H' => 16,
+            'I' => 20,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+                $event->sheet->setTitle('Licenses of Group');
+            },
+        ];
+    }
+}
+
+class ProjectLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents
+{
+    public function collection()
+    {
+        return GroupProjectLog::leftJoin('users', 'group_project_logs.user_id', '=', 'users.user_id')
+            ->leftJoin('groups', 'group_project_logs.group_id', '=', 'groups.group_id')
+            ->leftJoin('projects', 'group_project_logs.project_id', '=', 'projects.project_id')
+            ->select(
+                'group_project_logs.id',
+                'group_project_logs.user_id',
+                'users.name as user_name',
+                'group_project_logs.action_type',
+                'group_project_logs.group_id',
+                'groups.group_name',
+                'group_project_logs.project_id',
+                'projects.project_name',
+                'group_project_logs.created_at'
+            )
+            ->get();
+    }
+
+    public function headings(): array
+    {
+        return [
+            'ID',
+            'USER ID',
+            'USER NAME',
+            'TYPE OF ACTION',
+            'GROUP ID',
+            'GROUP NAME',
+            'PROJECT ID',
+            'PROJECT NAME',
+            'TIME',
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        // Bold the headers
+        $sheet->getStyle('A1:I1')->applyFromArray([
+            'font' => ['bold' => true,],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+        ]);
+
+        // Adjust column widths
+        $columnWidths = [
+            'A' => 9,
+            'B' => 6,
+            'C' => 11,
+            'D' => 9,
+            'E' => 9,
+            'F' => 16,
+            'G' => 9,
+            'H' => 16,
+            'I' => 20,
+        ];
+
+        foreach ($columnWidths as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
+        }
+
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+                $event->sheet->setTitle('Projects of Group');
+            },
+        ];
+    }
 }

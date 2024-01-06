@@ -33,8 +33,11 @@
     <thead>
         <tr>
             <th>LOG ID</th>
-            <th>USER</th>
+            <th>USER ID</th>
+            <th>USER NAME</th>
             <th>TYPE OF ACTION</th>
+            <th>TABLE NAME</th>
+            <th>RECORD ID</th>
             <th>RECORD NAME</th>
             <th>COLUMN NAME</th>
             <th>OLD VALUE</th>
@@ -46,8 +49,11 @@
         @foreach($logs as $log)
             <tr>
                 <td>{{ $log->log_id }}</td>
+                <td>{{ $log->user_id }}</td>
                 <td>{{ $log->user_name }}</td>
                 <td>{{ $log->type_action }}</td>
+                <td>{{ $log->table_name }}</td>
+                <td>{{ $log->record_id }}</td>
                 <td>{{ $log->record_name }}</td>
                 <td>{{ $log->column_name }}</td>
                 <td>{{ $log->old_value }}</td>

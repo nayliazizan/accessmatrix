@@ -8,43 +8,29 @@
     LIST
 </button>
 
-<!-- Export List Modal -->
+<!-- Export Format Modal -->
 <div class="modal fade" id="exportListModal" tabindex="-1" role="dialog" aria-labelledby="exportListModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exportListModalLabel">Export List Options</h5>
+                <h5 class="modal-title" id="exportListModalLabel">EXPORT LICENSE'S LIST</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p>Choose which list you want to export:</p>
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exportFormatModal">
-                    LICENSES
-                </button>
-                <button type="button" class="btn btn-primary" disabled>
-                    LICENSES & PROJECTS (To be developed)
-                </button>
+                <p>Which format do you want the list to be exported?</p>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Export Format Modal -->
-<div class="modal fade" id="exportFormatModal" tabindex="-1" role="dialog" aria-labelledby="exportFormatModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exportFormatModalLabel">Export Format Options</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>Choose the format you want the list to be exported:</p>
-                <a href="{{ route('exportListLicense', ['format' => 'xls']) }}" class="btn btn-primary">XLS</a>
-                <a href="{{ route('exportListLicense', ['format' => 'pdf']) }}" class="btn btn-primary">PDF</a>
+            <div class="modal-footer">
+                <!-- Button to export as CSV -->
+                <form action="{{ route('exportListLicense', ['format' => 'xls']) }}" method="GET">
+                    <button type="submit" class="btn btn-success">XLS</button>
+                </form>
+                <!-- Button to export as PDF -->
+                <form action="{{ route('exportListLicense', ['format' => 'pdf']) }}" method="GET">
+                    <button type="submit" class="btn btn-danger">PDF</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
             </div>
         </div>
     </div>
@@ -54,43 +40,29 @@
     LOG CHANGES
 </button>
 
-<!-- Export List Modal -->
+<!-- Export Format Modal -->
 <div class="modal fade" id="exportLogChangesModal" tabindex="-1" role="dialog" aria-labelledby="exportLogChangesModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exportLogChangesModalLabel">Export Log Options</h5>
+                <h5 class="modal-title" id="exportLogChangesModalLabel">EXPORT LICENSE'S LOG</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p>Choose the format you want the list to be exported:</p>
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exportFormatLogModal">
-                    LICENSES
-                </button>
-                <button type="button" class="btn btn-primary" disabled>
-                    LICENSES & PROJECTS (To be developed)
-                </button>
+                <p>Which format do you want the log to be exported?</p>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Export Format Modal -->
-<div class="modal fade" id="exportFormatLogModal" tabindex="-1" role="dialog" aria-labelledby="exportFormatLogModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exportFormatLogModalLabel">Export Format Options</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p>Choose the format you want the log to be exported:</p>
-                <a href="{{ route('exportLogLicense', ['format' => 'xls']) }}" class="btn btn-primary">XLS</a>
-                <a href="{{ route('exportLogLicense', ['format' => 'pdf']) }}" class="btn btn-primary">PDF</a>
+            <div class="modal-footer">
+                <!-- Button to export as CSV -->
+                <form action="{{ route('exportLogLicense', ['format' => 'xls']) }}" method="GET">
+                    <button type="submit" class="btn btn-success">XLS</button>
+                </form>
+                <!-- Button to export as PDF -->
+                <form action="{{ route('exportLogLicense', ['format' => 'pdf']) }}" method="GET">
+                    <button type="submit" class="btn btn-danger">PDF</button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
             </div>
         </div>
     </div>

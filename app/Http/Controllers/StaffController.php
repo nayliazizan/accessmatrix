@@ -21,6 +21,8 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\Exportable;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 
 
 class StaffController extends Controller
@@ -112,7 +114,9 @@ class StaffController extends Controller
         if ($format === 'xls') {
             return Excel::download(new StaffListExport($staffs), 'staffs_' . str_replace(' ', '_', $groupName) . '_list.xls');
         } elseif ($format === 'pdf') {
-            $pdf = PDF::loadView('exports.staffs_list', ['staffs' => $staffs, 'groupName' => $groupName]);
+            $pdf = app('dompdf.wrapper');
+            $pdf->setPaper('A4', 'landscape');
+            $pdf->loadView('exports.staffs_list', ['staffs' => $staffs, 'groupName' => $groupName]);
             return $pdf->download('staffs_' . str_replace(' ', '_', $groupName) . '_list.pdf');
         } else {
             return redirect()->route('staffs.index')->with('error', 'Invalid export format.');
@@ -126,11 +130,24 @@ class StaffController extends Controller
                 return Excel::download(new StaffLogExport, 'staffs_log.xls');
                 break;
             case 'pdf':
+                $pdf = app('dompdf.wrapper');
                 $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-                ->where('logs.table_name', 'staffs')
-                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+                ->where('logs.table_name', 'licenses')
+                ->select(
+                'logs.log_id',
+                'logs.user_id', 
+                'users.name as user_name', 
+                'logs.type_action',
+                'logs.table_name',
+                'logs.record_id', 
+                'logs.record_name', 
+                'logs.column_name', 
+                'logs.old_value', 
+                'logs.new_value', 
+                'logs.created_at')
                 ->get();
-                $pdf = PDF::loadView('exports.staffs_log', ['logs' => $logs]);
+                $pdf->setPaper('A4', 'landscape');
+                $pdf->loadView('exports.staffs_log', ['logs' => $logs]);
                 return $pdf->download('staffs_log.pdf');
                 break;
             default:
@@ -140,8 +157,9 @@ class StaffController extends Controller
     
 }
 
-class StaffListExport implements FromCollection, WithHeadings, WithStyles
+class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
+    use Exportable;
     protected $staffs;
 
     public function __construct($staffs)
@@ -197,23 +215,39 @@ class StaffListExport implements FromCollection, WithHeadings, WithStyles
         $columnWidths = [
             'A' => 9,
             'B' => 10,
-            'C' => 17,
+            'C' => 19,
             'D' => 13,
             'E' => 12,
-            'F' => 15,
+            'F' => 16,
             'G' => 23,
             'H' => 9,
-            'I' => 19,
-            'J' => 19,
+            'I' => 27,
+            'J' => 27,
         ];
 
         foreach ($columnWidths as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
+
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+        foreach ($columnsToWrap as $column) {
+            $sheet->getStyle($column)->getAlignment()->setWrapText(true);
+        }
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+            },
+        ];
     }
 }
 
-class StaffLogExport implements FromCollection, WithHeadings, WithStyles
+class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
     use Exportable;
 
@@ -252,28 +286,38 @@ class StaffLogExport implements FromCollection, WithHeadings, WithStyles
 
         // Adjust column widths
         $columnWidths = [
-            'A' => 14,
-            'B' => 8,
-            'C' => 20,
-            'D' => 8,
-            'E' => 12,
+            'A' => 9,
+            'B' => 6,
+            'C' => 11,
+            'D' => 9,
+            'E' => 8,
             'F' => 9,
-            'G' => 30,
-            'H' => 13,
-            'I' => 30,
-            'J' => 30,
-            'K' => 27,
+            'G' => 16,
+            'H' => 12,
+            'I' => 15,
+            'J' => 15,
+            'K' => 20,
         ];
 
         foreach ($columnWidths as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);
         }
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+            },
+        ];
     }
 
 }

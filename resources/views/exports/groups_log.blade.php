@@ -21,39 +21,125 @@
         text-align: center;
     }
 
-    h2 {
+    h1 {
         text-align: center;
     }
     
 </style>
 
-<h2>ALL GROUPS LOG</h2>
+<body>
+    <h1>ALL GROUPS LOG</h1>
 
-<table>
-    <thead>
-        <tr>
-            <th>LOG ID</th>
-            <th>USER</th>
-            <th>TYPE OF ACTION</th>
-            <th>RECORD NAME</th>
-            <th>COLUMN NAME</th>
-            <th>OLD VALUE</th>
-            <th>NEW VALUE</th>
-            <th>TIME</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach($logs as $log)
+    <!-- General Logs Table -->
+    <h2>General Logs</h2>
+    <table>
+        <thead>
             <tr>
-                <td>{{ $log->log_id }}</td>
-                <td>{{ $log->user_name }}</td>
-                <td>{{ $log->type_action }}</td>
-                <td>{{ $log->record_name }}</td>
-                <td>{{ $log->column_name }}</td>
-                <td>{{ $log->old_value }}</td>
-                <td>{{ $log->new_value }}</td>
-                <td>{{ $log->created_at }}</td>
+                <th>LOG ID</th>
+                <th>USER ID</th>
+                <th>USER NAME</th>
+                <th>TYPE OF ACTION</th>
+                <th>TABLE NAME</th>
+                <th>RECORD ID</th>
+                <th>RECORD NAME</th>
+                <th>COLUMN NAME</th>
+                <th>OLD VALUE</th>
+                <th>NEW VALUE</th>
+                <th>TIME</th>
             </tr>
-        @endforeach
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach($generalLogs as $log)
+                <tr>
+                    <td>{{ $log->log_id }}</td>
+                    <td>{{ $log->user_id }}</td>
+                    <td>{{ $log->user_name }}</td>
+                    <td>{{ $log->type_action }}</td>
+                    <td>{{ $log->table_name }}</td>
+                    <td>{{ $log->record_id }}</td>
+                    <td>{{ $log->record_name }}</td>
+                    <td>{{ $log->column_name }}</td>
+                    <td>{{ $log->old_value }}</td>
+                    <td>{{ $log->new_value }}</td>
+                    <td>{{ $log->created_at }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <!-- Page Break -->
+    <div class="page-break"></div>
+
+    <!-- Group License Logs Table -->
+    <h2>Group License Logs</h2>
+    <table>
+        <!-- Add similar table structure for Group License Logs -->
+        <!-- Use $licenseLogs to populate data -->
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>USER ID</th>
+                <th>USER NAME</th>
+                <th>TYPE OF ACTION</th>
+                <th>GROUP ID</th>
+                <th>GROUP NAME</th>
+                <th>LICENSE ID</th>
+                <th>LICENSE NAME</th>
+                <th>TIME</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($licenseLogs as $license)
+                <tr>
+                    <td>{{ $license->id }}</td>
+                    <td>{{ $license->user_id }}</td>
+                    <td>{{ $license->user_name }}</td>
+                    <td>{{ $license->type_action }}</td>
+                    <td>{{ $license->group_id }}</td>
+                    <td>{{ $license->group_name }}</td>
+                    <td>{{ $license->license_id }}</td>
+                    <td>{{ $license->license_name }}</td>
+                    <td>{{ $license->created_at }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    <!-- Page Break -->
+    <div class="page-break"></div>
+
+    <!-- Group Project Logs Table -->
+    <h2>Group Project Logs</h2>
+    <table>
+        <!-- Add similar table structure for Group Project Logs -->
+        <!-- Use $projectLogs to populate data -->
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>USER ID</th>
+                <th>USER NAME</th>
+                <th>TYPE OF ACTION</th>
+                <th>GROUP ID</th>
+                <th>GROUP NAME</th>
+                <th>PROJECT ID</th>
+                <th>PROJECT NAME</th>
+                <th>TIME</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($projectLogs as $project)
+                <tr>
+                    <td>{{ $project->id }}</td>
+                    <td>{{ $project->user_id }}</td>
+                    <td>{{ $project->user_name }}</td>
+                    <td>{{ $project->type_action }}</td>
+                    <td>{{ $project->group_id }}</td>
+                    <td>{{ $project->group_name }}</td>
+                    <td>{{ $project->project_id }}</td>
+                    <td>{{ $project->project_name }}</td>
+                    <td>{{ $project->created_at }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+</body>

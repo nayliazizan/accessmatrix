@@ -13,6 +13,8 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 
 class ProjectController extends Controller
 {
@@ -83,8 +85,8 @@ class ProjectController extends Controller
                 return Excel::download(new ProjectListExport, 'projects_list.xls');
                 break;
             case 'pdf':
-                $projects = Project::withTrashed()->get();
-                $pdf = PDF::loadView('exports.projects_list', ['projects' => $projects]);
+                $pdf = app('dompdf.wrapper');
+                $pdf->loadView('exports.projects_list', ['projects' => Project::withTrashed()->get()]);
                 return $pdf->download('projects_list.pdf');
                 break;
             default:
@@ -99,11 +101,24 @@ class ProjectController extends Controller
                 return Excel::download(new ProjectLogChangesExport, 'project_log.xls');
                 break;
             case 'pdf':
+                $pdf = app('dompdf.wrapper');
                 $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
                 ->where('logs.table_name', 'projects') // Add the condition for table_name
-                ->select('logs.log_id', 'users.name as user_name', 'logs.type_action', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+                ->select(
+                    'logs.log_id',
+                    'logs.user_id', 
+                    'users.name as user_name', 
+                    'logs.type_action',
+                    'logs.table_name',
+                    'logs.record_id', 
+                    'logs.record_name', 
+                    'logs.column_name', 
+                    'logs.old_value', 
+                    'logs.new_value', 
+                    'logs.created_at')
                 ->get();
-                $pdf = PDF::loadView('exports.projects_log', ['logs' => $logs]);
+                $pdf->setPaper('A4', 'landscape');
+                $pdf->loadView('exports.projects_log', ['logs' => $logs]);
                 return $pdf->download('projects_log.pdf');
                 break;
             default:
@@ -112,7 +127,7 @@ class ProjectController extends Controller
     }    
 }
 
-class ProjectListExport implements FromCollection, WithHeadings, WithStyles
+class ProjectListExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
     use Exportable;
 
@@ -145,7 +160,7 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles
 
         // Adjust column widths
         $columnWidths = [
-            'A' => 15,
+            'A' => 11,
             'B' => 30,
             'C' => 30,
             'D' => 27,
@@ -157,15 +172,25 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['C'];
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F',];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);
         }
     }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+            },
+        ];
+    }
 }
 
-class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyles
+class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
     use Exportable;
 
@@ -205,28 +230,38 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
 
         // Adjust column widths
         $columnWidths = [
-            'A' => 14,
-            'B' => 8,
-            'C' => 20,
-            'D' => 8,
-            'E' => 12,
+            'A' => 9,
+            'B' => 6,
+            'C' => 11,
+            'D' => 9,
+            'E' => 8,
             'F' => 9,
-            'G' => 30,
-            'H' => 13,
-            'I' => 30,
-            'J' => 30,
-            'K' => 27,
+            'G' => 16,
+            'H' => 12,
+            'I' => 15,
+            'J' => 15,
+            'K' => 20,
         ];
 
         foreach ($columnWidths as $column => $width) {
             $sheet->getColumnDimension($column)->setWidth($width);
         }
 
-        $columnsToWrap = ['D', 'F', 'H', 'I', 'J'];
+        $columnsToWrap = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
 
         foreach ($columnsToWrap as $column) {
             $sheet->getStyle($column)->getAlignment()->setWrapText(true);
         }
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                // Freeze the first row
+                $event->sheet->freezePane('A2');
+            },
+        ];
     }
 
 }

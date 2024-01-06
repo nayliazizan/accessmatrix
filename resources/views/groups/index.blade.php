@@ -27,7 +27,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exportModalLabel">Export List</h5>
+                <h5 class="modal-title" id="exportModalLabel">EXPORT GROUP'S LIST</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -59,7 +59,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exportLogChangesModalLabel">Export Log</h5>
+                <h5 class="modal-title" id="exportLogChangesModalLabel">EXPORT GROUP'S LOG</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
