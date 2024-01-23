@@ -47,10 +47,11 @@ class GroupController extends Controller
             $query->whereNull('deleted_at');
         }, 'groupProjects' => function ($query) {
             $query->whereNull('deleted_at')->with('project');
-        }])->get();
-
+        }])
+        ->orderByRaw('deleted_at ASC, deleted_at IS NULL') 
+        ->get();
+    
         return view('groups.index', compact('groups'));
-        
     }
 
     public function create()

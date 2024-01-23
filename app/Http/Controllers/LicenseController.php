@@ -20,7 +20,9 @@ use Barryvdh\DomPDF\Facade as PDF;
 class LicenseController extends Controller
 {
     public function index(){
-        $licenses = License::withTrashed()->get(); // Include soft-deleted licenses
+        $licenses = License::withTrashed()
+        ->orderByRaw('deleted_at ASC, deleted_at IS NULL') 
+        ->get(); // Include soft-deleted licenses
 
         return view('licenses.index', compact('licenses'));
     }

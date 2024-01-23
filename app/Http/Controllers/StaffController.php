@@ -24,10 +24,16 @@ use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\File;
+
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class StaffController extends Controller
 {
-    // Display a listing of the staffs
     public function index()
     {
         $staffs = Staff::with('group')->get();
@@ -35,18 +41,24 @@ class StaffController extends Controller
         return view('staffs.index', compact('staffs', 'groups'));
     }
 
-    // Show the form for creating a new staff
+    public function noGroupStaff()
+    {
+        $ngStaff = Staff::whereNull('group_id')->get();
+
+        return view('staffs.no_group_staff', compact('ngStaff'));
+    }
+
+
     public function create()
     {
         $groups = Group::all();
         return view('staffs.create', compact('groups'));
     }
 
-    // Store a newly created staff in the database
     public function store(Request $request)
     {
         $data = $request->validate([
-            'group_id' => 'required|exists:groups,group_id',
+            'group_id' => 'nullable|exists:groups,group_id',
             'staff_id_rw' => 'required|string|max:255|unique:staffs,staff_id_rw',
             'staff_name' => 'required|string|max:255',
             'dept_id' => 'required|string|max:255',
@@ -54,19 +66,19 @@ class StaffController extends Controller
             'status' => 'required|string|max:255',
         ]);
 
+        $data['group_id'] = $data['group_id'] ?? null;
+
         Staff::create($data);
 
         return redirect()->route('staffs.index')->with('success', 'Staff created successfully!');
     }
 
-    // Show the form for editing the specified staff
     public function edit(Staff $staff)
     {
         $groups = Group::all();
         return view('staffs.edit', compact('staff', 'groups'));
     }
 
-    // Update the specified staff in the database
     public function update(Request $request, $staff_id)
     {
         $staff = Staff::where('staff_id', $staff_id)->firstOrFail();
@@ -88,7 +100,6 @@ class StaffController extends Controller
         return redirect()->route('staffs.index')->with('success', 'Staff updated successfully!');
     }
 
-    // Delete the specified staff from the database
     public function destroy(Staff $staff)
     {
         $staff->delete();
@@ -154,7 +165,127 @@ class StaffController extends Controller
                 return redirect('/groups')->with('error', 'Invalid export format');
         }
     }
+
+    public function importStaff(Request $request)
+    {
+        try {
+            $validator = $request->validate([
+                'staff_file' => 'required|file|mimes:xlsx|max:2048',
+            ]);
+
+            $filePath = $request->file('staff_file')->getRealPath();
+
+            if ($request->file('staff_file')->getClientOriginalExtension() !== 'xlsx') {
+                throw new \Exception('Wrong file type. Please upload a valid xlsx file.');
+            }
+
+
+            Excel::import(new class extends StaffImport {}, $filePath);
+
+            return redirect()->route('staff.index')->with('success', 'Staff imported successfully');
+        } catch (ValidationException $e) {
+            return redirect()->route('staff.index')->withErrors($e->validator)->withInput();
+        } catch (\Exception $e) {
+            return redirect()->route('staff.index')->with('error', $e->getMessage());
+        }
+    }
+
+    public function showUploadForm()
+    {
+        return view('tracker/form');
+    }
+
+    public function compareColumn(Request $request)
+    {
+        $request->validate([
+            'to_track' => 'required|in:status,department',
+            'excel_file' => 'required|mimes:xlsx,xls',
+        ]);
+
+        $toTrack = $request->input('to_track');
+        $file = $request->file('excel_file');
+        $filePath = $file->storeAs('uploads', 'uploaded_file.xlsx');
+
+        $databaseData = Staff::all();
+        $excelData = $this->readExcel($filePath);
+
+        if ($toTrack == 'status') {
+            $differences = $this->compareStatusAndReturnDifferences($databaseData, $excelData);
+        } elseif ($toTrack == 'department') {
+            $differences = $this->compareDeptAndReturnDifferences($databaseData, $excelData);
+        } 
+        return view('tracker/results', compact('differences', 'toTrack'));
+    }
+
+    private function readExcel($filePath)
+    {
+        $spreadsheet = IOFactory::load(storage_path("app/{$filePath}"));
+        $worksheet = $spreadsheet->getActiveSheet();
     
+        $data = [];
+        foreach ($worksheet->getRowIterator() as $row) {
+            $rowData = [];
+            foreach ($row->getCellIterator() as $cell) {
+                $rowData[] = $cell->getValue();
+            }
+            $data[] = $rowData;
+        }
+    
+        return $data;
+    }
+    
+
+    private function compareStatusAndReturnDifferences($databaseData, $excelData)
+    {
+        $differences = [];
+
+        foreach ($excelData as $excelRow) {
+            $staffId = $excelRow[0];
+            $excelStatus = strtolower($excelRow[4]); 
+            $excelStatus = trim($excelStatus); 
+    
+            $databaseStaff = $databaseData->firstWhere('staff_id_rw', $staffId);
+    
+            if ($databaseStaff && strtolower($databaseStaff->status) != $excelStatus) {
+                $differences[] = [
+                    'staff_id_rw' => $staffId,
+                    'staff_name' => $excelRow[1], 
+                    'dept_id' => $excelRow[2],
+                    'dept_name' => $excelRow[3],
+                    'old_status' => $databaseStaff->status,
+                    'new_status' => $excelStatus,
+                ];
+            }
+        }
+
+        return $differences;
+    }
+    
+    private function compareDeptAndReturnDifferences($databaseData, $excelData)
+    {
+        $differences = [];
+
+        foreach ($excelData as $excelRow) {
+            $staffId = $excelRow[0];
+            $excelDept = strtolower($excelRow[3]);  
+            $excelDept = trim($excelDept);
+    
+            $databaseStaff = $databaseData->firstWhere('staff_id_rw', $staffId);
+    
+            if ($databaseStaff && strtolower($databaseStaff->dept_name) != $excelDept) {
+                $differences[] = [
+                    'staff_id_rw' => $staffId,
+                    'staff_name' => $excelRow[1], 
+                    'dept_id' => $excelRow[2],
+                    'old_dept' => $databaseStaff->dept_name,
+                    'new_dept' => $excelDept,
+                    'status' => $excelRow[4],
+                ];
+            }
+        }
+
+        return $differences;
+    }
 }
 
 class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithEvents
@@ -176,7 +307,7 @@ class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithE
             ->get([
                 'staffs.staff_id',
                 'staffs.group_id',
-                'groups.group_name', // Use 'groups.group_name' instead of 'group.group_name'
+                'groups.group_name', 
                 'staffs.staff_id_rw',
                 'staffs.staff_name',
                 'staffs.dept_id',
@@ -240,7 +371,6 @@ class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithE
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];
@@ -270,21 +400,29 @@ class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEv
 
     public function collection()
     {
-        return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
+        return Log::select('logs.log_id', 
+        'logs.user_id', 
+        'users.name as user_name', 
+        'logs.type_action', 
+        'logs.table_name', 
+        'logs.record_id', 
+        'logs.record_name', 
+        'logs.column_name', 
+        'logs.old_value', 
+        'logs.new_value', 
+        'logs.created_at')
             ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-            ->where('logs.table_name', 'staffs') // Add the condition for table_name
+            ->where('logs.table_name', 'staffs') 
             ->get();
     }
     
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
         $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
         $columnWidths = [
             'A' => 9,
             'B' => 6,
@@ -314,10 +452,25 @@ class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEv
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];
     }
 
+}
+
+class StaffImport implements ToModel, WithHeadingRow
+{
+    public function model(array $row)
+    {
+
+        return new Staff([
+            'staff_id_rw' => $row['staff_id_rw'],
+            'staff_name' => $row['staff_name'],
+            'dept_id' => $row['dept_id'],
+            'dept_name' => $row['dept_name'],
+            'status' => $row['status'],
+            'group_id' => null, 
+        ]);
+    }
 }

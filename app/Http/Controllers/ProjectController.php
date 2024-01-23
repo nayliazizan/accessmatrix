@@ -19,7 +19,9 @@ use Maatwebsite\Excel\Events\AfterSheet;
 class ProjectController extends Controller
 {
     public function index(){
-        $projects = Project::withTrashed()->get(); // Include soft-deleted licenses
+        $projects = Project::withTrashed()
+        ->orderByRaw('deleted_at ASC, deleted_at IS NULL') 
+        ->get(); // Include soft-deleted licenses
 
         return view('projects.index', compact('projects'));
     }

@@ -48,9 +48,8 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Tracker</h5>
-                    <p class="card-text">Manage tracker (To be developed)</p>
-                    <!-- Link to future tracker page -->
-                    <a href="#" class="btn btn-primary disabled">Coming Soon</a>
+                    <p class="card-text">Manage tracker</p>
+                    <a href="{{ route('tracker.form') }}" class="btn btn-primary">Track Staff's Status</a>
                 </div>
             </div>
         </div>

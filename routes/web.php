@@ -5,6 +5,7 @@ use App\Http\Controllers\LicenseController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\TrackerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -63,11 +64,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/groups/exportLog/{format}', [GroupController::class, 'exportLogGroup'])->name('exportLogGroup');
     Route::get('groups/{group}/show_staff', [GroupController::class, 'show_staff'])->name('groups.show_staff');
 
-
-    Route::resource('staffs', StaffController::class);
     Route::post('/staffs/exportList', [StaffController::class, 'exportListStaff'])->name('exportListStaff');
     Route::get('/staffs/exportLog/{format}', [StaffController::class, 'exportLogStaff'])->name('exportLogStaff');
+    Route::get('/staffs/no_group_staff', [StaffController::class, 'noGroupStaff'])->name('noGroupStaff');
+    Route::resource('staffs', StaffController::class);
+    Route::post('/staff', [StaffController::class, 'importStaff'])->name('staff.import');
+    Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
 
+    Route::get('/tracker/form', [StaffController::class, 'showUploadForm'])->name('tracker.form');
+    Route::post('/tracker/results', [StaffController::class, 'compareColumn'])->name('tracker.results');
 
     Route::get('/counter', function () {return view('counter');});
 

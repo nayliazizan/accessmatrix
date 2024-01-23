@@ -4,6 +4,18 @@
 
 @section('content')
 
+@if(session('success'))
+    <div class="alert alert-success">
+        {{ session('success') }}
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger">
+        {{ session('error') }}
+    </div>
+@endif
+
 <h2>ALL STAFF</h2>
 <a href="{{ route('staffs.create') }}" class="btn btn-warning">ADD</a>
 
@@ -75,6 +87,48 @@
         </div>
     </div>
 </div>
+
+<a href="{{ route('noGroupStaff') }}" class="btn btn-danger">NO GROUP'S STAFF</a>
+
+<!-- <a href="" class="btn btn-warning">IMPORT STAFF</a> -->
+
+<a href="#" class="btn btn-warning" data-toggle="modal" data-target="#importStaffModal">IMPORT STAFF</a>
+
+<div class="modal fade" id="importStaffModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <form action="{{ route('staff.import') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Staff</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="staff_file">Select XLSX file:</label>
+                        <input type="file" class="form-control" id="staff_file" name="staff_file" required>
+                    </div>
+                    @if (isset($data))
+                        <h3>Confirm Import</h3>
+                        <p>Are you sure you want to import these {{ count($data) }} staff?</p>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    @if (isset($data))
+                        <button type="submit" class="btn btn-primary">Yes</button>
+                        <a href="{{ route('staff.index') }}" class="btn btn-danger">No</a>
+                    @else
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    @endif
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <table class="table">
     <thead class="thead-light">

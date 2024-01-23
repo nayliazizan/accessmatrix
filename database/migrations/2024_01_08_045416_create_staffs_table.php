@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('staffs', function (Blueprint $table) {
             $table->id('staff_id');
-            $table->unsignedBigInteger('group_id');
+            $table->unsignedBigInteger('group_id')->nullable();
             $table->string('staff_id_rw')->unique();
             $table->string('staff_name');
             $table->string('dept_id');
@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('status');
             $table->timestamps();
             $table->foreign('group_id')->references('group_id')->on('groups');
-
         });
     }
 

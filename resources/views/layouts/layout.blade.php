@@ -28,6 +28,10 @@
             padding: 10px;
             background-color: #f8f9fa; /* Use a light background color for the footer */
         }
+        
+        .highlight {
+            background-color: rgba(255, 255, 0, 0.5); /* Yellowish background with 50% opacity */
+        }
     </style>
 </head>
 <body>
@@ -44,7 +48,7 @@
                 <a class="nav-item nav-link" href="/projects">PROJECTS</a>
                 <a class="nav-item nav-link" href="/groups">GROUPS</a>
                 <a class="nav-item nav-link" href="/staffs">STAFF</a>
-                <a class="nav-item nav-link" href="#">TRACKER</a>
+                <a class="nav-item nav-link" href="/tracker/form">TRACKER</a>
                 <!-- Add the logout form here -->
                 <form method="POST" action="{{ route('logout') }}" class="nav-item">
                     @csrf

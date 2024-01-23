@@ -16,7 +16,8 @@
 
                         <div class="form-group">
                             <label for="group_id">Group:</label>
-                            <select class="form-control" name="group_id" required>
+                            <select class="form-control" id="group_id" name="group_id">
+                                <option value="">No Group</option>
                                 @foreach($groups as $group)
                                     <option value="{{ $group->group_id }}">{{ $group->group_name }}</option>
                                 @endforeach
@@ -25,7 +26,7 @@
 
                         <div class="form-group">
                             <label for="staff_id_rw">Staff ID (RW):</label>
-                            <input class="form-control" type="text" name="staff_id_rw" required>
+                            <input class="form-control" type="text" id="staff_id_rw" name="staff_id_rw" required>
                         </div>
 
                         <div class="form-group">
