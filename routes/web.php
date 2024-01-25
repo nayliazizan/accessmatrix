@@ -73,6 +73,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/tracker/form', [StaffController::class, 'showUploadForm'])->name('tracker.form');
     Route::post('/tracker/results', [StaffController::class, 'compareColumn'])->name('tracker.results');
+    Route::get('/tracker/export/status/{format}', [StaffController::class, 'exportStatus'])->name('exportStatus');
+    Route::get('/tracker/export/dept/{format}', [StaffController::class, 'exportDept'])->name('exportDept');
+
 
     Route::get('/counter', function () {return view('counter');});
 

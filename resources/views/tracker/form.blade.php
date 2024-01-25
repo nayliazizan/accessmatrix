@@ -17,6 +17,7 @@
                             <select class="form-control" id="to_track" name="to_track" required>
                                 <option value="status">Status</option>
                                 <option value="department">Department</option>
+                                <option value="all">All</option>
                             </select>
                         </div>
 

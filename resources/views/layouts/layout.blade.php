@@ -32,11 +32,33 @@
         .highlight {
             background-color: rgba(255, 255, 0, 0.5); /* Yellowish background with 50% opacity */
         }
+
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff; /* Set your background color */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000; /* Adjust the z-index to make sure it's above other elements */
+        }
+
+        .preloader img {
+            width: 50px; /* Set your loader image size */
+            height: 50px; /* Set your loader image size */
+        }
     </style>
 </head>
 <body>
 
 <header>
+    <div class="preloader" id="preloader">
+        <img src="{{ asset('img/giphy.gif') }}" alt="Loading">
+    </div>
+
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
         <a class="navbar-brand" href="/dashboard">AM system</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,6 +103,13 @@
         $('#exportListModal').modal('hide');
     });
 </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById('preloader').style.display = 'none';
+    });
+</script>
+
 
 </body>
 </html>
