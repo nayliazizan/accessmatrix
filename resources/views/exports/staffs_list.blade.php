@@ -49,7 +49,7 @@
             <tr>
                 <td>{{ $staff->staff_id }}</td>
                 <td>{{ $staff->group_id }}</td>
-                <td>{{ $staff->group->group_name }}</td>
+                <td>{{ optional($staff->group)->group_name }}</td>
                 <td>{{ $staff->staff_id_rw }}</td>
                 <td>{{ $staff->staff_name }}</td>
                 <td>{{ $staff->dept_id }}</td>

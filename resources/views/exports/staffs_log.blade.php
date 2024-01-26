@@ -1,3 +1,14 @@
+@php
+    function formatJsonValues($jsonString) {
+        $jsonArray = json_decode($jsonString, true);
+        $formattedValues = [];
+        foreach ($jsonArray as $key => $value) {
+            $formattedValues[] = "• {$key}: {$value}";
+        }
+        return implode('<br>', $formattedValues);
+    }
+@endphp
+
 <style>
     table {
         width: 100%;
@@ -56,8 +67,8 @@
                 <td>{{ $log->record_id }}</td>
                 <td>{{ $log->record_name }}</td>
                 <td>{{ $log->column_name }}</td>
-                <td>{{ $log->old_value }}</td>
-                <td>{{ $log->new_value }}</td>
+                <td>{!! $log->old_value ? formatJsonValues($log->old_value) : '' !!}</td>
+                <td>{!! $log->new_value ? formatJsonValues($log->new_value) : '' !!}</td>
                 <td>{{ $log->created_at }}</td>
             </tr>
         @endforeach

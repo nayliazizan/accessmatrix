@@ -31,6 +31,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\File;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
 class StaffController extends Controller
 {
@@ -51,7 +52,7 @@ class StaffController extends Controller
 
     public function create()
     {
-        $groups = Group::all();
+        $groups = Group::orderBy('group_name', 'asc')->get();
         return view('staffs.create', compact('groups'));
     }
 
@@ -75,7 +76,7 @@ class StaffController extends Controller
 
     public function edit(Staff $staff)
     {
-        $groups = Group::all();
+        $groups = Group::orderBy('group_name', 'asc')->get();
         return view('staffs.edit', compact('staff', 'groups'));
     }
 
@@ -143,7 +144,7 @@ class StaffController extends Controller
             case 'pdf':
                 $pdf = app('dompdf.wrapper');
                 $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-                ->where('logs.table_name', 'licenses')
+                ->where('logs.table_name', 'staffs')
                 ->select(
                 'logs.log_id',
                 'logs.user_id', 
@@ -385,7 +386,7 @@ class StaffController extends Controller
     
 }
 
-class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithEvents
+class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     use Exportable;
     protected $staffs;
@@ -431,6 +432,22 @@ class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithE
         ];
     }
 
+    public function map($staff): array
+    {
+        return [
+            $staff->staff_id,
+            $staff->group_id,
+            optional($staff->group)->group_name,
+            $staff->staff_id_rw,
+            $staff->staff_name,
+            $staff->dept_id,
+            $staff->dept_name,
+            $staff->status,
+            $staff->created_at->format('Y-m-d H:i:s'),
+            $staff->updated_at->format('Y-m-d H:i:s'), 
+        ];
+    }
+
     public function styles(Worksheet $sheet)
     {
         // Bold the headers
@@ -472,9 +489,10 @@ class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithE
             },
         ];
     }
+
 }
 
-class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEvents
+class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     use Exportable;
 
@@ -511,6 +529,26 @@ class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEv
             ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
             ->where('logs.table_name', 'staffs') 
             ->get();
+    }
+
+    public function map($log): array
+    {
+        $log->old_value = $this->formatJsonValue($log->old_value);
+        $log->new_value = $this->formatJsonValue($log->new_value);
+
+        return [
+            $log->log_id,
+            $log->user_id,
+            $log->user_name,
+            $log->type_action,
+            $log->table_name,
+            $log->record_id,
+            $log->record_name,
+            $log->column_name,
+            $log->old_value,
+            $log->new_value,
+            $log->created_at->format('Y-m-d H:i:s'), 
+        ];
     }
     
     public function styles(Worksheet $sheet)
@@ -552,6 +590,25 @@ class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEv
                 $event->sheet->freezePane('A2');
             },
         ];
+    }
+
+    private function formatJsonValue($jsonValue)
+    {
+        // Decode the JSON value
+        $decodedValue = json_decode($jsonValue, true);
+
+        // Check if decoding was successful
+        if (json_last_error() === JSON_ERROR_NONE) {
+            // Format the array to a readable string with bulletpoints
+            $formattedValue = implode(', ', array_map(function ($key, $value) {
+                return "• $key: $value";
+            }, array_keys($decodedValue), $decodedValue));
+
+            return "$formattedValue";
+        }
+
+        // Return the original value if decoding fails
+        return $jsonValue;
     }
 
 }

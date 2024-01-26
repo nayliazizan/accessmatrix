@@ -37,6 +37,8 @@ use Barryvdh\Snappy\Facades\SnappyPdf;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Dompdf\Dompdf;
+use Maatwebsite\Excel\Concerns\WithMapping;
+
 
 
 class GroupController extends Controller
@@ -437,7 +439,7 @@ class GroupLogXlsExport implements WithMultipleSheets
     }
 }
 
-class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents
+class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     public function collection()
     {
@@ -473,6 +475,26 @@ class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, With
             'OLD VALUE',
             'NEW VALUE',
             'TIME',
+        ];
+    }
+
+    public function map($log): array
+    {
+        $log->old_value = $this->formatJsonValue($log->old_value);
+        $log->new_value = $this->formatJsonValue($log->new_value);
+
+        return [
+            $log->log_id,
+            $log->user_id,
+            $log->user_name,
+            $log->type_action,
+            $log->table_name,
+            $log->record_id,
+            $log->record_name,
+            $log->column_name,
+            $log->old_value,
+            $log->new_value,
+            $log->created_at->format('Y-m-d H:i:s'), 
         ];
     }
 
@@ -522,9 +544,28 @@ class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, With
             },
         ];
     }
+
+        private function formatJsonValue($jsonValue)
+    {
+        // Decode the JSON value
+        $decodedValue = json_decode($jsonValue, true);
+
+        // Check if decoding was successful
+        if (json_last_error() === JSON_ERROR_NONE) {
+            // Format the array to a readable string with bulletpoints
+            $formattedValue = implode(', ', array_map(function ($key, $value) {
+                return "• $key: $value";
+            }, array_keys($decodedValue), $decodedValue));
+
+            return "$formattedValue";
+        }
+
+        // Return the original value if decoding fails
+        return $jsonValue;
+    }
 }
 
-class LicenseLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents
+class LicenseLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     public function collection()
     {
@@ -557,6 +598,21 @@ class LicenseLogsSheet implements FromCollection, WithHeadings, WithStyles, With
             'LICENSE ID',
             'LICENSE NAME',
             'TIME',
+        ];
+    }
+
+    public function map($log): array
+    {
+        return [
+            $log->id,
+            $log->user_id,
+            $log->user_name,
+            $log->action_type,
+            $log->group_id,
+            $log->group_name,
+            $log->license_id,
+            $log->license_name,
+            $log->created_at->format('Y-m-d H:i:s'),
         ];
     }
 
@@ -604,7 +660,7 @@ class LicenseLogsSheet implements FromCollection, WithHeadings, WithStyles, With
     }
 }
 
-class ProjectLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents
+class ProjectLogsSheet implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     public function collection()
     {
@@ -637,6 +693,21 @@ class ProjectLogsSheet implements FromCollection, WithHeadings, WithStyles, With
             'PROJECT ID',
             'PROJECT NAME',
             'TIME',
+        ];
+    }
+
+    public function map($log): array
+    {
+        return [
+            $log->id,
+            $log->user_id,
+            $log->user_name,
+            $log->action_type,
+            $log->group_id,
+            $log->group_name,
+            $log->project_id,
+            $log->project_name,
+            $log->created_at->format('Y-m-d H:i:s'),
         ];
     }
 

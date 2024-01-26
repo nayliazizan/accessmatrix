@@ -15,6 +15,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
 class ProjectController extends Controller
 {
@@ -129,7 +130,7 @@ class ProjectController extends Controller
     }    
 }
 
-class ProjectListExport implements FromCollection, WithHeadings, WithStyles, WithEvents
+class ProjectListExport implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     use Exportable;
 
@@ -142,6 +143,18 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles, Wit
             'TIME CREATED',
             'TIME UPDATED',
             'TIME DELETED',
+        ];
+    }
+
+    public function map($project): array
+    {
+        return [
+            $project->project_id,
+            $project->project_name,
+            $project->project_desc,
+            $project->created_at->format('Y-m-d H:i:s'),
+            $project->updated_at->format('Y-m-d H:i:s'), 
+            $project->deleted_at ? $project->deleted_at->format('Y-m-d H:i:s') : '',
         ];
     }
 
@@ -192,7 +205,7 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles, Wit
     }
 }
 
-class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyles, WithEvents
+class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyles, WithEvents, WithMapping
 {
     use Exportable;
 
@@ -219,6 +232,26 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
             ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
             ->where('logs.table_name', 'projects') // Add the condition for table_name
             ->get();
+    }
+
+    public function map($log): array
+    {
+        $log->old_value = $this->formatJsonValue($log->old_value);
+        $log->new_value = $this->formatJsonValue($log->new_value);
+
+        return [
+            $log->log_id,
+            $log->user_id,
+            $log->user_name,
+            $log->type_action,
+            $log->table_name,
+            $log->record_id,
+            $log->record_name,
+            $log->column_name,
+            $log->old_value,
+            $log->new_value,
+            $log->created_at->format('Y-m-d H:i:s'), 
+        ];
     }
 
     
@@ -264,6 +297,25 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
                 $event->sheet->freezePane('A2');
             },
         ];
+    }
+
+    private function formatJsonValue($jsonValue)
+    {
+        // Decode the JSON value
+        $decodedValue = json_decode($jsonValue, true);
+
+        // Check if decoding was successful
+        if (json_last_error() === JSON_ERROR_NONE) {
+            // Format the array to a readable string with bulletpoints
+            $formattedValue = implode(', ', array_map(function ($key, $value) {
+                return "• $key: $value";
+            }, array_keys($decodedValue), $decodedValue));
+
+            return "$formattedValue";
+        }
+
+        // Return the original value if decoding fails
+        return $jsonValue;
     }
 
 }

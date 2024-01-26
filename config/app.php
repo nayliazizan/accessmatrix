@@ -190,4 +190,6 @@ return [
         'PDF' => Barryvdh\DomPDF\Facade::class
     ])->toArray(),
 
+    'timezone' => 'Asia/Kuala_Lumpur',
+
 ];
