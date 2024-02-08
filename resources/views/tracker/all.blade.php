@@ -2,9 +2,8 @@
 
 @section('content')
 <style>
-    /* Set a fixed height for all rows */
     .row-height-3 {
-        height: 120px; /* Adjust as needed */
+        height: 160px;
     }
 </style>
 
@@ -15,6 +14,7 @@
             <table class="table">
                 <thead class="thead-light">
                     <tr>
+                        <th scope="col">#</th>
                         <th scope="col">Staff ID</th>
                         <th scope="col">Staff Name</th>
                         <th scope="col">Department ID</th>
@@ -24,7 +24,9 @@
                 </thead>
                 <tbody>
                     @foreach($staffsFromSystem as $i => $staff)
+                    @php $i = $loop->iteration; @endphp
                         <tr class="row-height-3">
+                            <th scope="row">{{ $i }}</th>
                             <td>{{ $staff['staff_id_rw'] }}</td>
                             <td>{{ $staff['staff_name'] }}</td>
                             <td>{{ $staff['dept_id'] }}</td>
@@ -49,13 +51,20 @@
                 </thead>
                 <tbody>
                     @foreach($staffsFromUpload as $i => $staff)
-                        <tr class="row-height-3">
-                            <td>{{ $staff['staff_name'] }}</td>
-                            <td>{{ $staff['dept_id'] }}</td>
-                            <td>{{ $staff['dept_name'] }}</td>
-                            <td>{{ $staff['status'] }}</td>
-                        </tr>
+                        @php
+                            $staffId = $staff['staff_id_rw'];
+                            $isNewStaff = !in_array($staffId, $staffsFromSystem->pluck('staff_id_rw')->toArray());
+                        @endphp
+                        @if (!$isNewStaff)
+                            <tr class="row-height-3">
+                                <td>{{ $staff['staff_name'] }}</td>
+                                <td>{{ $staff['dept_id'] }}</td>
+                                <td>{{ $staff['dept_name'] }}</td>
+                                <td>{{ $staff['status'] }}</td>
+                            </tr>
+                        @endif
                     @endforeach
+                
                 </tbody>
             </table>
         </div>

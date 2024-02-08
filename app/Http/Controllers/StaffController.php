@@ -32,13 +32,41 @@ use Illuminate\Support\Facades\File;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\Importable;
 
 class StaffController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $staffs = Staff::with('group')->get();
+        $sortOrder = $request->input('sort_order', 'latest');
+    
+        $staffs = Staff::with('group');
+    
+        if ($sortOrder == 'latest') {
+            $staffs->orderBy('updated_at', 'desc');
+        } elseif ($sortOrder == 'alphabet') {
+            $staffs->orderBy('staff_name', 'asc');
+        }
+    
+        $staffs = $staffs->get();
         $groups = Group::all();
+    
+        return view('staffs.index', compact('staffs', 'groups', 'sortOrder'));
+    }
+    
+
+    public function searchStaff(Request $request) {
+        $searchText = $request->search;
+
+        $staffs = Staff::where(function ($query) use ($searchText) {
+            $query->where('staff_id_rw', 'LIKE', "%$searchText%")
+                  ->orWhere('staff_name', 'LIKE', "%$searchText%")
+                  ->orWhere('dept_id', 'LIKE', "%$searchText%")
+                  ->orWhere('dept_name', 'LIKE', "%$searchText%")
+                  ->orWhere('status', 'LIKE', "%$searchText%");
+        })->get();
+        $groups = Group::all(); 
+
         return view('staffs.index', compact('staffs', 'groups'));
     }
 
@@ -58,19 +86,35 @@ class StaffController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
+        $request->validate([
             'group_id' => 'nullable|exists:groups,group_id',
-            'staff_id_rw' => 'required|string|max:255|unique:staffs,staff_id_rw',
+            'staff_id_rw' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('staffs', 'staff_id_rw')->ignore($request->staff_id_rw, 'staff_id_rw'),
+            ],
             'staff_name' => 'required|string|max:255',
             'dept_id' => 'required|string|max:255',
             'dept_name' => 'required|string|max:255',
             'status' => 'required|string|max:255',
         ]);
-
+    
+        // check if department name has more than 5 characters
+        if (strlen($request->dept_name) < 5) {
+            return redirect()->back()->withInput()->with('error', 'Kindly enter the department name in the longer version.');
+        }
+    
+        // check if staff ID already exists
+        if (Staff::where('staff_id_rw', $request->staff_id_rw)->exists()) {
+            return redirect()->back()->withInput()->with('error', 'The ID already exists in the system. Please add a new ID.');
+        }
+    
+        $data = $request->all();
         $data['group_id'] = $data['group_id'] ?? null;
-
+    
         Staff::create($data);
-
+    
         return redirect()->route('staffs.index')->with('success', 'Staff created successfully!');
     }
 
@@ -92,10 +136,15 @@ class StaffController extends Controller
             ],
             'staff_name' => 'required',
             'dept_id' => 'required',
-            'dept_name' => 'required',
+            'dept_name' => 'required|min:5',
             'status' => 'required',
         ]);
 
+        // Check if department name has more than 5 characters
+        if (strlen($data['dept_name']) < 5) {
+            return redirect()->route('staffs.edit', $staff->staff_id)->withInput()->with('error', 'Kindly enter the department name in the longer version.');
+        }
+        
         $staff->update($data);
 
         return redirect()->route('staffs.index')->with('success', 'Staff updated successfully!');
@@ -169,23 +218,17 @@ class StaffController extends Controller
 
     public function importStaff(Request $request)
     {
+        set_time_limit(300);
         try {
             $validator = $request->validate([
                 'staff_file' => 'required|file|mimes:xlsx|max:2048',
             ]);
-
+    
             $filePath = $request->file('staff_file')->getRealPath();
-
-            if ($request->file('staff_file')->getClientOriginalExtension() !== 'xlsx') {
-                throw new \Exception('Wrong file type. Please upload a valid xlsx file.');
-            }
-
-
-            Excel::import(new class extends StaffImport {}, $filePath);
-
+    
+            Excel::import(new StaffImport(), $filePath); // Use the separate class
+    
             return redirect()->route('staff.index')->with('success', 'Staff imported successfully');
-        } catch (ValidationException $e) {
-            return redirect()->route('staff.index')->withErrors($e->validator)->withInput();
         } catch (\Exception $e) {
             return redirect()->route('staff.index')->with('error', $e->getMessage());
         }
@@ -198,62 +241,74 @@ class StaffController extends Controller
 
     public function compareColumn(Request $request)
     {
-        $request->validate([
-            'to_track' => 'required|in:status,department,all',
-            'excel_file' => 'required|mimes:xlsx,xls',
-        ]);
-    
-        $toTrack = $request->input('to_track');
-        $file = $request->file('excel_file');
-        $filePath = $file->storeAs('uploads', 'uploaded_file.xlsx');
-    
-        $databaseData = Staff::all();
-        $excelData = $this->readExcel($filePath);
-    
-        if ($toTrack == 'status') {
-            $differences = $this->compareStatusAndReturnDifferences($databaseData, $excelData);
-            session(['toTrack' => $toTrack, 'differences' => $differences]);
-            return view('tracker.results', compact('toTrack', 'differences'));
-        } elseif ($toTrack == 'department') {
-            $differences = $this->compareDeptAndReturnDifferences($databaseData, $excelData);
-            session(['toTrack' => $toTrack, 'differences' => $differences]);
-            return view('tracker.results', compact('toTrack', 'differences'));
-        } elseif ($toTrack == 'all') {
-            $staffsFromSystem = Staff::all(['staff_id_rw', 'staff_name', 'dept_id', 'dept_name', 'status']);
-            $staffsFromUpload = collect($excelData)->skip(1)->map(function ($row) {
-                return [
-                    'staff_id_rw' => $row[0],
-                    'staff_name' => $row[1],
-                    'dept_id' => $row[2],
-                    'dept_name' => $row[3],
-                    'status' => $row[4],
-                ];
-            });
+        set_time_limit(10000);
+        try {
+            $request->validate([
+                'to_track' => 'required|in:status,department,all',
+                'excel_file' => 'required|mimes:xlsx,xls',
+            ]);
 
-            // Sort the $staffsFromUpload array based on the 'staff_id_rw' value
-            $staffsFromUpload = $staffsFromUpload->sortBy('staff_id_rw');
+            $toTrack = $request->input('to_track');
+            $file = $request->file('excel_file');
 
-            // Identify new staff members not present in the system's database
-            $newStaffs = $staffsFromUpload->reject(function ($uploadStaff) use ($staffsFromSystem) {
-                return $staffsFromSystem->contains('staff_id_rw', $uploadStaff['staff_id_rw']);
-            });
+            // Check file extension
+            $extension = $file->getClientOriginalExtension();
+            if (!in_array($extension, ['xlsx', 'xls'])) {
+                throw new \Exception('Wrong file type. Please upload a valid xlsx or xls file.');
+            }
+
+            $filePath = $file->storeAs('uploads', 'uploaded_file.xlsx');
+
+            $databaseData = Staff::all();
+            $excelData = $this->readExcel($filePath);
+
+            if ($toTrack == 'status') {
+                $differences = $this->compareStatus($databaseData, $excelData);
+                session(['toTrack' => $toTrack, 'differences' => $differences]);
+                return view('tracker.results', compact('toTrack', 'differences'));
+            } elseif ($toTrack == 'department') {
+                $differences = $this->compareDept($databaseData, $excelData);
+                session(['toTrack' => $toTrack, 'differences' => $differences]);
+                return view('tracker.results', compact('toTrack', 'differences'));
+            } elseif ($toTrack == 'all') {
+                $staffsFromSystem = Staff::all(['staff_id_rw', 'staff_name', 'dept_id', 'dept_name', 'status']);
+                $staffsFromUpload = collect($excelData)->skip(1)->map(function ($row) {
+                    return [
+                        'staff_id_rw' => $row[0],
+                        'staff_name' => $row[1],
+                        'dept_id' => $row[2],
+                        'dept_name' => $row[3],
+                        'status' => $row[4],
+                    ];
+                });
     
-            // Exclude new staff members from the original right-side table
-            $staffsFromUpload = $staffsFromUpload->reject(function ($uploadStaff) use ($newStaffs) {
-                return $newStaffs->contains('staff_id_rw', $uploadStaff['staff_id_rw']);
-            });
+                // sort the $staffsFromUpload array based on the 'staff_id_rw' value
+                $staffsFromUpload = $staffsFromUpload->sortBy('staff_id_rw');
     
-            // Append new staff members at the end of the right-side table
-            $staffsFromUpload = $staffsFromUpload->concat($newStaffs);
+                // identify new staff members not present in the system's database
+                $newStaffs = $staffsFromUpload->reject(function ($uploadStaff) use ($staffsFromSystem) {
+                    return $staffsFromSystem->contains('staff_id_rw', $uploadStaff['staff_id_rw']);
+                });
+        
+                // exclude new staff members from the original right-side table
+                $staffsFromUpload = $staffsFromUpload->reject(function ($uploadStaff) use ($newStaffs) {
+                    return $newStaffs->contains('staff_id_rw', $uploadStaff['staff_id_rw']);
+                });
+        
+                // append new staff members at the end of the right-side table
+                $staffsFromUpload = $staffsFromUpload->concat($newStaffs);
+    
+                // set a default height of 3 for all rows
+                $maxRowHeightsLeft = array_fill(0, count($staffsFromSystem), 3);
+                $maxRowHeightsRight = array_fill(0, count($staffsFromUpload), 3);
 
-            // Set a default height of 3 for all rows
-            $maxRowHeightsLeft = array_fill(0, count($staffsFromSystem), 3);
-            $maxRowHeightsRight = array_fill(0, count($staffsFromUpload), 3);
+                return view('tracker.all', compact('staffsFromSystem', 'staffsFromUpload', 'maxRowHeightsLeft', 'maxRowHeightsRight'));
+            }
 
-            return view('tracker.all', compact('staffsFromSystem', 'staffsFromUpload', 'maxRowHeightsLeft', 'maxRowHeightsRight'));
+            return redirect()->route('tracker.form')->with('error', 'Invalid tracking option');
+        } catch (\Exception $e) {
+            return redirect()->route('tracker.form')->with('error', $e->getMessage());
         }
-    
-        return redirect()->route('tracker.form')->with('error', 'Invalid tracking option');
     }
 
     private function readExcel($filePath)
@@ -274,21 +329,20 @@ class StaffController extends Controller
     }
     
 
-    private function compareStatusAndReturnDifferences($databaseData, $excelData)
+    private function compareStatus($databaseData, $excelData)
     {
         $differences = [];
-
+    
         foreach ($excelData as $excelRow) {
             $staffId = $excelRow[0];
-            $excelStatus = strtolower($excelRow[4]); 
-            $excelStatus = trim($excelStatus); 
+            $excelStatus = trim($excelRow[4]);
     
             $databaseStaff = $databaseData->firstWhere('staff_id_rw', $staffId);
     
-            if ($databaseStaff && strtolower($databaseStaff->status) != $excelStatus) {
+            if ($databaseStaff && $databaseStaff->status != $excelStatus) {
                 $differences[] = [
                     'staff_id_rw' => $staffId,
-                    'staff_name' => $excelRow[1], 
+                    'staff_name' => $excelRow[1],
                     'dept_id' => $excelRow[2],
                     'dept_name' => $excelRow[3],
                     'old_status' => $databaseStaff->status,
@@ -296,25 +350,25 @@ class StaffController extends Controller
                 ];
             }
         }
-
+    
         return $differences;
     }
     
-    private function compareDeptAndReturnDifferences($databaseData, $excelData)
+    
+    private function compareDept($databaseData, $excelData)
     {
         $differences = [];
-
+    
         foreach ($excelData as $excelRow) {
             $staffId = $excelRow[0];
-            $excelDept = strtolower($excelRow[3]);  
-            $excelDept = trim($excelDept);
+            $excelDept = trim($excelRow[3]);
     
             $databaseStaff = $databaseData->firstWhere('staff_id_rw', $staffId);
     
-            if ($databaseStaff && strtolower($databaseStaff->dept_name) != $excelDept) {
+            if ($databaseStaff && $databaseStaff->dept_name != $excelDept) {
                 $differences[] = [
                     'staff_id_rw' => $staffId,
-                    'staff_name' => $excelRow[1], 
+                    'staff_name' => $excelRow[1],
                     'dept_id' => $excelRow[2],
                     'old_dept' => $databaseStaff->dept_name,
                     'new_dept' => $excelDept,
@@ -322,21 +376,22 @@ class StaffController extends Controller
                 ];
             }
         }
-
+    
         return $differences;
     }
+    
 
     public function exportStatus($format)
     {
-        // Validate the export format
+        // validate the export format
         if (!in_array($format, ['xls', 'pdf'])) {
             return redirect('/tracker/results')->with('error', 'Invalid export format');
         }
 
-        // Get differences from the session data
+        // get differences from the session data
         $differences = session('differences');
 
-        // Validate differences
+        // validate differences
         if (empty($differences)) {
             return redirect('/tracker/results')->with('error', 'No data to export');
         }
@@ -357,15 +412,15 @@ class StaffController extends Controller
 
     public function exportDept($format)
     {
-        // Validate the export format
+        // validate the export format
         if (!in_array($format, ['xls', 'pdf'])) {
             return redirect('/tracker/results')->with('error', 'Invalid export format');
         }
 
-        // Get differences from the session data
+        // get differences from the session data
         $differences = session('differences');
 
-        // Validate differences
+        // validate differences
         if (empty($differences)) {
             return redirect('/tracker/results')->with('error', 'No data to export');
         }
@@ -450,13 +505,13 @@ class StaffListExport implements FromCollection, WithHeadings, WithStyles, WithE
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:J1')->applyFromArray([
             'font' => ['bold' => true],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 9,
             'B' => 10,
@@ -594,12 +649,12 @@ class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEv
 
     private function formatJsonValue($jsonValue)
     {
-        // Decode the JSON value
+        // decode the JSON value
         $decodedValue = json_decode($jsonValue, true);
 
-        // Check if decoding was successful
+        // check if decoding was successful
         if (json_last_error() === JSON_ERROR_NONE) {
-            // Format the array to a readable string with bulletpoints
+            // format the array to a readable string with bulletpoints
             $formattedValue = implode(', ', array_map(function ($key, $value) {
                 return "• $key: $value";
             }, array_keys($decodedValue), $decodedValue));
@@ -607,7 +662,7 @@ class StaffLogExport implements FromCollection, WithHeadings, WithStyles, WithEv
             return "$formattedValue";
         }
 
-        // Return the original value if decoding fails
+        // return the original value if decoding fails
         return $jsonValue;
     }
 
@@ -617,17 +672,22 @@ class StaffImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-
         return new Staff([
             'staff_id_rw' => $row['staff_id_rw'],
             'staff_name' => $row['staff_name'],
             'dept_id' => $row['dept_id'],
             'dept_name' => $row['dept_name'],
             'status' => $row['status'],
-            'group_id' => null, 
+            'group_id' => $row['group_id'] ?? null, // Assign null if group_id is not provided
         ]);
     }
+
+    public function headingRow(): int
+    {
+        return 1; // Assuming headers are in the first row
+    }
 }
+
 
 class StatusExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 {
@@ -658,13 +718,13 @@ class StatusExport implements FromCollection, WithHeadings, WithStyles, WithEven
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:F1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Apply styles to specific columns
+        // apply styles to specific columns
         $sheet->getStyle('E:F')->applyFromArray([
             'fill' => [
                 'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
@@ -676,7 +736,7 @@ class StatusExport implements FromCollection, WithHeadings, WithStyles, WithEven
 
         $sheet->freezePane('A1');
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 8,
             'B' => 13,
@@ -737,13 +797,13 @@ class DeptExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:F1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Apply styles to specific columns
+        // apply styles to specific columns
         $sheet->getStyle('D:E')->applyFromArray([
             'fill' => [
                 'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
@@ -755,7 +815,7 @@ class DeptExport implements FromCollection, WithHeadings, WithStyles, WithEvents
 
         $sheet->freezePane('A1');
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 8,
             'B' => 13,
@@ -780,7 +840,7 @@ class DeptExport implements FromCollection, WithHeadings, WithStyles, WithEvents
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];

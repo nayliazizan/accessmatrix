@@ -7,7 +7,7 @@
         }
         return implode('<br>', $formattedValues);
     }
-@endphp
+@endphp 
 
 <style>
     table {

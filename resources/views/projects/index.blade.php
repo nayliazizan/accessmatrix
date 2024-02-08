@@ -1,6 +1,13 @@
 @extends('layouts.layout')
 
 @section('content')
+
+@if(session('success'))
+    <div class="alert alert-success" role="alert">
+        {{ session('success') }}
+    </div>
+@endif
+
 <h2>ALL PROJECTS</h2>
 <button type="button" class="btn btn-warning"><a href="/projects/create">ADD</a></button>
 
@@ -68,7 +75,22 @@
     </div>
 </div>
 
+<br><br>
+<form class="form-inline my-2 my-lg-0" action="{{url('searchProject')}}" method="get">
+    @csrf
+    <input class="form-control mr-sm-2" type="search" name="search" placeholder="Search For Project" aria-label="Search">
+    <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+</form>
 
+<div class="dropdown mt-2">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="sortDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Sort Order
+    </button>
+    <div class="dropdown-menu" aria-labelledby="sortDropdown">
+        <a class="dropdown-item" href="{{ route('projects.index', ['sort_order' => 'latest']) }}">Latest to Oldest</a>
+        <a class="dropdown-item" href="{{ route('projects.index', ['sort_order' => 'alphabet']) }}">Alphabetical (A-Z)</a>
+    </div>
+</div>
 
 <table class="table">
     <thead class="thead-light">
@@ -83,9 +105,9 @@
     <tbody>
         <!-- Update the loop to only show "active" projects -->
         @foreach($projects as $project)
-           
-                <tr>
-                    <th scope="row">{{ $project->project_id }}</th>
+        @php $i = $loop->iteration; @endphp
+                <tr id="projectRow{{ $project->project_id }}">
+                    <th scope="row">{{ $i }}</th>
                     <td>{{ $project->project_name }}</td>
                     <td>{{ $project->project_desc }}</td>
                     <td>
@@ -103,46 +125,41 @@
                             <form action="{{ route('projects.restore', $project->project_id) }}" method="GET">
                                 @csrf
                                 @method('GET')
-                                <button type="submit" class="btn btn-success">RESTORE</button>
+                                <button type="submit" class="btn btn-success">REACTIVATE</button>
                             </form>
                         @else
                             <!-- Display the DELETE button for non-soft-deleted projects -->
                             <form action="{{ route('projects.destroy', $project->project_id) }}" method="POST">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-danger">DELETE</button>
+                                <button type="submit" class="btn btn-danger"  onclick="return confirm('Are you sure you want to deactivate this project?')">
+                                    DEACTIVATE
+                                </button>
                             </form>
                         @endif
 
-                        <!-- Delete Modal -->
-                        <div class="modal fade" id="deleteModal{{ $project->project_id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-                            <div class="modal-dialog" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="deleteModalLabel">Delete Confirmation</h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        Are you sure to delete '{{ $project->project_name }}' license?
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
-                                        <!-- Form to handle the DELETE request -->
-                                        <form action="/projects/{{ $project->project_id }}" method="POST">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger">YES</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </td>
                 </tr>
 
         @endforeach
     </tbody>
 </table>
+
+<script>
+    // Check if there's a recently created or updated project
+    var recentlyUpdatedProjectId = "{{ session('recently_created_or_updated_project') }}";
+    
+    if (recentlyUpdatedProjectId) {
+        // Highlight the row
+        var row = document.getElementById('projectRow' + recentlyUpdatedProjectId);
+        if (row) {
+            row.classList.add('highlight');
+
+            // Remove the highlighting after 3 seconds
+            setTimeout(function() {
+                row.classList.remove('highlight');
+            }, 3000);
+        }
+    }
+</script>
 @endsection

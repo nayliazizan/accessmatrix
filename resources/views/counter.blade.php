@@ -1,57 +1,46 @@
 @extends('layouts.layout')
 
 @section('content')
-    <div class="row">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Licenses</h5>
-                    <p class="card-text">Manage licenses</p>
-                    <a href="{{ route('licenses.index') }}" class="btn btn-primary">Go to Licenses</a>
-                </div>
-            </div>
+
+    <div class="card text-center">
+        <div class="card-header">
+            MAIN FUNCTIONS
         </div>
 
-        <!-- Add similar cards for Projects, Groups, and Tracker -->
-        
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Projects</h5>
-                    <p class="card-text">Manage projects</p>
-                    <a href="{{ route('projects.index') }}" class="btn btn-primary">Go to Projects</a>
-                </div>
-            </div>
-        </div>
+        <div class="card-body">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-sm">
+                            <img src="img/layers-player-slides-svgrepo-com.svg" alt="SVG image" width="100" height="100" class="p-3">
+                            <br>
+                            <a href="{{ route('licenses.index') }}" class="btn btn-primary">Manage Licenses</a>
+                        </div>
+                        
+                        <div class="col-sm">
+                            <img src="img/folder-svgrepo-com.svg" alt="SVG image" width="100" height="100" class="p-3">
+                            <br>
+                            <a href="{{ route('projects.index') }}" class="btn btn-primary">Manage Projects</a>
+                        </div>
 
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Groups</h5>
-                    <p class="card-text">Manage groups</p>
-                    <a href="{{ route('groups.index') }}" class="btn btn-primary">Go to Groups</a>
-                </div>
-            </div>
-        </div>
+                        <div class="col-sm">
+                            <img src="img/employees-svgrepo-com.svg" alt="SVG image" width="100" height="100" class="p-3">
+                            <br>
+                            <a href="{{ route('groups.index') }}" class="btn btn-primary">Manage Groups</a>
+                        </div>
 
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Staff</h5>
-                    <p class="card-text">Manage staff</p>
-                    <a href="{{ route('staffs.index') }}" class="btn btn-primary">Go to Staffs</a>
-                </div>
-            </div>
-        </div>
+                        <div class="col-sm">
+                            <img src="img/new-employee-male-doing-a-guts-pose-svgrepo-com.svg" alt="SVG image" width="100" height="100" class="p-3">
+                            <br>
+                            <a href="{{ route('staffs.index') }}" class="btn btn-primary">Manage Staff</a>
+                        </div>
 
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Tracker</h5>
-                    <p class="card-text">Manage tracker</p>
-                    <a href="{{ route('tracker.form') }}" class="btn btn-primary">Track Staff's Status</a>
+                        <div class="col-sm">
+                            <img src="img/magnifying-glass-svgrepo-com.svg" alt="SVG image" width="100" height="100" class="p-3">
+                            <br>
+                            <a href="{{ route('tracker.form') }}" class="btn btn-primary">Track Difference</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 @endsection

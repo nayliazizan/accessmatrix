@@ -13,11 +13,11 @@
                         @csrf
                         <div class="form-group">
                             <label for="license_name">Name:</label>
-                            <input type="text" class="form-control" id="license_name" name="license_name">
+                            <input type="text" class="form-control" id="license_name" name="license_name" required>
                         </div>
                         <div class="form-group">
                             <label for="license_desc">Description:</label>
-                            <textarea class="form-control" name="license_desc" rows="5" cols="40"></textarea>
+                            <textarea class="form-control" name="license_desc" rows="5" cols="40" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Create License</button>
                     </form>

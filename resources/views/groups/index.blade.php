@@ -82,10 +82,27 @@
     </div>
 </div>
 
+<br><br>
+<form class="form-inline my-2 my-lg-0" action="{{url('searchGroup')}}" method="get">
+    @csrf
+    <input class="form-control mr-sm-2" type="search" name="search" placeholder="Search For Group" aria-label="Search">
+    <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+</form>
+
+<div class="dropdown mt-2">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="sortDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Sort Order
+    </button>
+    <div class="dropdown-menu" aria-labelledby="sortDropdown">
+        <a class="dropdown-item" href="{{ route('groups.index', ['sort_order' => 'latest']) }}">Latest to Oldest</a>
+        <a class="dropdown-item" href="{{ route('groups.index', ['sort_order' => 'alphabet']) }}">Alphabetical (A-Z)</a>
+    </div>
+</div>
+
 <table class="table">
   <thead class="thead-light">
     <tr>
-      <th scope="col">#</th>
+      <th scope="col">KEY ID</th>
       <th scope="col">GROUP NAME</th>
       <th scope="col">DESCRIPTION</th>
       <th scope="col">LICENSES</th>
@@ -97,18 +114,19 @@
   </thead>
   <tbody>
     @foreach($groups as $group)
-        <tr>
+    
+        <tr id="groupRow{{ $group->group_id }}">
             <th scope="row">{{ $group->group_id }}</th>
             <td>{{ $group->group_name }}</td>
             <td>{{ $group->group_desc }}</td>
             <td>
                 @foreach($group->licenses as $license)
-                    {{ $license->license_name }}<br>
+                    <li>{{ $license->license_name }}</li><br>
                 @endforeach
             </td>
             <td>
                 @foreach($group->projects as $project)
-                    {{ $project->project_name }}<br>
+                    <li>{{ $project->project_name }}</li><br>
                 @endforeach
             </td>
             <td>
@@ -131,49 +149,40 @@
                     <form action="{{ route('groups.restore', $group->group_id) }}" method="GET">
                         @csrf
                         
-                        <button type="submit" class="btn btn-success">RESTORE</button>
+                        <button type="submit" class="btn btn-success">REACTIVATE</button>
                     </form>
                 @else
                     <!-- Button trigger modal -->
                     <form action="{{ route('groups.destroy', $group->group_id) }}" method="POST">
                         @csrf
                         @method('DELETE')
-                        <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal{{ $group->group_id }}">
-                            DELETE
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to deactivate this group?')">
+                            DEACTIVATE
                         </button>
                     </form>
-                    
-
-
-                    <!-- Delete Modal -->
-                    <div class="modal fade" id="deleteModal{{ $group->group_id }}" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="deleteModalLabel">Delete Confirmation</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                <div class="modal-body">
-                                    Are you sure to delete '{{ $group->group_name }}' group?
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
-                                    <!-- Form to handle the DELETE request -->
-                                    <form action="{{ route('groups.destroy', $group->group_id) }}" method="POST">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger">YES</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 @endif
             </td>
         </tr>
     @endforeach
   </tbody>
 </table>
+
+<script>
+    // Check if there's a recently created or updated license
+    var recentlyUpdatedGroupId = "{{ session('recently_created_or_updated_group') }}";
+    
+    if (recentlyUpdatedGroupId) {
+        // Highlight the row
+        var row = document.getElementById('groupRow' + recentlyUpdatedGroupId);
+        if (row) {
+            row.classList.add('highlight');
+
+            // Remove the highlighting after 3 seconds
+            setTimeout(function() {
+                row.classList.remove('highlight');
+            }, 3000);
+        }
+    }
+</script>
+
 @endsection

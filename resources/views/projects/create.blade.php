@@ -13,11 +13,11 @@
                         @csrf
                         <div class="form-group">
                             <label for="project_name">Name:</label>
-                            <input type="text" class="form-control" id="project_name" name="project_name">
+                            <input type="text" class="form-control" id="project_name" name="project_name" required>
                         </div>
                         <div class="form-group">
                             <label for="project_desc">Description:</label>
-                            <textarea class="form-control" name="project_desc" rows="5" cols="40"></textarea>
+                            <textarea class="form-control" name="project_desc" rows="5" cols="40" required></textarea>
                         </div>
                         <input type="hidden" name="state" value="active">
                         <button type="submit" class="btn btn-primary">Create Project</button>

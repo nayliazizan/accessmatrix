@@ -43,16 +43,33 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class GroupController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $groups = Group::withTrashed(['groupLicenses' => function ($query) {
-            $query->whereNull('deleted_at');
-        }, 'groupProjects' => function ($query) {
-            $query->whereNull('deleted_at')->with('project');
-        }])
-        ->orderByRaw('deleted_at ASC, deleted_at IS NULL') 
-        ->get();
+        $sortOrder = $request->input('sort_order', 'latest');
     
+        $groups = Group::withTrashed(['groupLicenses' => function ($query) {
+                $query->whereNull('deleted_at');
+            }, 'groupProjects' => function ($query) {
+                $query->whereNull('deleted_at')->with('project');
+            }])
+            ->orderByRaw('deleted_at ASC, deleted_at IS NULL');
+    
+        if ($sortOrder == 'latest') {
+            $groups->orderBy('deleted_at', 'asc')->orderBy('created_at', 'desc');
+        } elseif ($sortOrder == 'alphabet') {
+            $groups->orderBy('deleted_at', 'asc')->orderBy('group_name', 'asc');
+        }
+    
+        $groups = $groups->get();
+    
+        return view('groups.index', compact('groups', 'sortOrder'));
+    }
+
+    public function searchGroup(Request $request) {
+        $searchText = $request->search;
+
+        $groups=Group::where('group_name', 'LIKE', "%$searchText%")->get();
+
         return view('groups.index', compact('groups'));
     }
 
@@ -73,21 +90,21 @@ class GroupController extends Controller
             'projects' => 'array',
         ]);
 
-        // Create a new group
+        // create a new group
         $group = Group::create([
             'group_name' => $request->input('group_name'),
             'group_desc' => $request->input('group_desc'),
         ]);
 
-        // Attach licenses by IDs
+        // attach licenses by IDs
         $licenses = $request->input('licenses', []);
         $group->licenses()->attach($licenses, ['license_name' => '']);
 
-        // Attach projects by IDs
+        // attach projects by IDs
         $projects = $request->input('projects', []);
         $group->projects()->attach($projects, ['project_name' => '']);
 
-        // Log creations for group licenses
+        // log creations for group licenses
         foreach ($licenses as $licenseId) {
             GroupLicenseLog::create([
                 'user_id' => auth()->id(),
@@ -97,7 +114,7 @@ class GroupController extends Controller
             ]);
         }
 
-        // Log creations for group projects
+        // log creations for group projects
         foreach ($projects as $projectId) {
             GroupProjectLog::create([
                 'user_id' => auth()->id(),
@@ -107,6 +124,9 @@ class GroupController extends Controller
             ]);
         }
 
+                // ltore the ID of the created group in the session
+                session(['recently_created_or_updated_group' => $group->group_id]);
+
         return redirect()->route('groups.index');
     }
 
@@ -114,18 +134,18 @@ class GroupController extends Controller
     {
         $group = Group::findOrFail($group_id);
 
-        // Check if there are related staff
+        // check if there are related staff
         $relatedStaffCount = Staff::where('group_id', $group_id)->count();
 
         if ($relatedStaffCount > 0) {
-            // Display a message that the group has staff
+            // cisplay a message that the group has staff
             return redirect()->route('groups.index')->with('error', 'Cannot delete the group. The group has staff.');
         }
 
-        // No related staff, proceed with deletion
+        // no related staff, proceed with deletion
         $group->delete();
 
-        return redirect()->route('groups.index')->with('success', 'The selected group soft deleted!');
+        return redirect()->route('groups.index')->with('success', 'The selected group deactivated!');
     }
 
 
@@ -133,10 +153,10 @@ class GroupController extends Controller
     {
         $group = Group::withTrashed()->findOrFail($group_id);
 
-        // Restore the soft-deleted license
+        // restore the soft-deleted license
         $group->restore();
 
-        return redirect()->route('groups.index')->with('success', 'Group restored!');
+        return redirect()->route('groups.index')->with('success', 'Group reactivated!');
     }
 
     public function edit(Group $group)
@@ -144,11 +164,11 @@ class GroupController extends Controller
         $licenses = License::whereNull('deleted_at')->get();
         $projects = Project::whereNull('deleted_at')->get();
 
-        // Fetch licenses and projects for the group
+        // fetch licenses and projects for the group
         $groupLicenses = GroupLicense::where('group_id', $group->group_id)->get();
         $groupProjects = GroupProject::where('group_id', $group->group_id)->get();
 
-        // Extract license and project IDs from pivot tables
+        // extract license and project IDs from pivot tables
         $selectedLicenses = $groupLicenses->pluck('license_id')->toArray();
         $selectedProjects = $groupProjects->pluck('project_id')->toArray();
 
@@ -169,17 +189,39 @@ class GroupController extends Controller
             'projects' => 'array',
         ]);
 
-        // Update group details
+        // update group details
         $group->update([
             'group_name' => $request->input('group_name'),
             'group_desc' => $request->input('group_desc'),
         ]);
 
-        // Log changes for group licenses
+        // sync licenses by IDs (including license_name)
+        $licenses = $request->input('licenses', []);
+        $syncData = [];
+
+        foreach ($licenses as $licenseId) {
+            $license = License::find($licenseId);
+            $syncData[$licenseId] = ['license_name' => $license->license_name];
+        }
+
+        $group->licenses()->sync($syncData);
+
+        // sync projects by IDs (including project_name)
+        $projects = $request->input('projects', []);
+        $projectSyncData = [];
+
+        foreach ($projects as $projectId) {
+            $project = Project::find($projectId);
+            $projectSyncData[$projectId] = ['project_name' => $project->project_name];
+        }
+
+        $group->projects()->sync($projectSyncData);
+
+        // log changes for group licenses
         $licenses = $request->input('licenses', []);
         $existingLicenses = $group->licenses->pluck('license_id')->toArray();
 
-        // Log creations
+        // log creations
         foreach (array_diff($licenses, $existingLicenses) as $licenseId) {
             GroupLicenseLog::create([
                 'user_id' => auth()->id(),
@@ -188,11 +230,11 @@ class GroupController extends Controller
                 'action_type' => 'create',
             ]);
 
-            // Sync licenses by IDs (including license_name)
+            // sync licenses by IDs (including license_name)
             $group->licenses()->sync([$licenseId => ['license_name' => License::find($licenseId)->license_name]]);
         }
 
-        // Log deletions
+        // log deletions
         foreach (array_diff($existingLicenses, $licenses) as $licenseId) {
             GroupLicenseLog::create([
                 'user_id' => auth()->id(),
@@ -201,15 +243,15 @@ class GroupController extends Controller
                 'action_type' => 'delete',
             ]);
 
-            // Detach licenses by IDs
+            // detach licenses by IDs
             $group->licenses()->detach($licenseId);
         }
 
-        // Log changes for group projects
+        // log changes for group projects
         $projects = $request->input('projects', []);
         $existingProjects = $group->projects->pluck('project_id')->toArray();
 
-        // Log creations
+        // log creations
         foreach (array_diff($projects, $existingProjects) as $projectId) {
             GroupProjectLog::create([
                 'user_id' => auth()->id(),
@@ -218,11 +260,11 @@ class GroupController extends Controller
                 'action_type' => 'create',
             ]);
 
-            // Sync projects by IDs (including project_name)
+            // sync projects by IDs (including project_name)
             $group->projects()->sync([$projectId => ['project_name' => Project::find($projectId)->project_name]]);
         }
 
-        // Log deletions
+        // log deletions
         foreach (array_diff($existingProjects, $projects) as $projectId) {
             GroupProjectLog::create([
                 'user_id' => auth()->id(),
@@ -231,9 +273,12 @@ class GroupController extends Controller
                 'action_type' => 'delete',
             ]);
 
-            // Detach projects by IDs
+            // detach projects by IDs
             $group->projects()->detach($projectId);
         }
+
+            // store the ID of the created group in the session
+            session(['recently_created_or_updated_group' => $group->group_id]);
 
         return redirect()->route('groups.index');
     }
@@ -258,7 +303,7 @@ class GroupController extends Controller
         if ($format === 'xls') {
             return Excel::download(new GroupListExport, 'groups_list.xls');
         } elseif ($format === 'pdf') {
-            $pdf = app('dompdf.wrapper');  // Create an instance of the PDF facade
+            $pdf = app('dompdf.wrapper'); 
             $pdf->loadView('exports.groups_list', ['groups' => Group::withTrashed()->get()]);
             return $pdf->download('groups_list.pdf');
         } else {
@@ -274,7 +319,7 @@ class GroupController extends Controller
                 return Excel::download($combinedLogsExport, 'groups_log.xls');
                 break;
             case 'pdf':
-                // Fetch data for all three tables
+                // fetch data for all three tables
                 $generalLogs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
                     ->where('logs.table_name', 'groups')
                     ->select(
@@ -324,13 +369,13 @@ class GroupController extends Controller
                     )
                     ->get();
 
-                // Prepare HTML content for the PDF
+                // prepare HTML content for the PDF
                 $html = view('exports.groups_log', compact('generalLogs', 'licenseLogs', 'projectLogs'))->render();
 
-                // Generate PDF
+                // generate PDF
                 $dompdf = new Dompdf();
                 $dompdf->loadHtml($html);
-                $dompdf->setPaper('A4', 'landscape');  // Adjust as needed
+                $dompdf->setPaper('A4', 'landscape'); 
                 $dompdf->render();
 
                 return $dompdf->stream('groups_log.pdf');
@@ -363,7 +408,7 @@ class GroupListExport implements FromCollection, WithHeadings, WithStyles, WithE
 
     public function collection()
     {
-        // Fetch necessary data for CSV export
+        // fetch necessary data for CSV export
         $groups = Group::withTrashed()->get();
         $data = [];
 
@@ -387,13 +432,13 @@ class GroupListExport implements FromCollection, WithHeadings, WithStyles, WithE
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:H1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 10,
             'B' => 30,
@@ -420,7 +465,7 @@ class GroupListExport implements FromCollection, WithHeadings, WithStyles, WithE
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];
@@ -500,7 +545,7 @@ class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, With
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
@@ -508,7 +553,7 @@ class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, With
 
         $sheet->freezePane('A1');
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 9,
             'B' => 6,
@@ -538,7 +583,7 @@ class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, With
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
                 $event->sheet->setTitle('General Logs');
             },
@@ -547,12 +592,12 @@ class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, With
 
         private function formatJsonValue($jsonValue)
     {
-        // Decode the JSON value
+        // decode the JSON value
         $decodedValue = json_decode($jsonValue, true);
 
-        // Check if decoding was successful
+        // check if decoding was successful
         if (json_last_error() === JSON_ERROR_NONE) {
-            // Format the array to a readable string with bulletpoints
+            // format the array to a readable string with bulletpoints
             $formattedValue = implode(', ', array_map(function ($key, $value) {
                 return "• $key: $value";
             }, array_keys($decodedValue), $decodedValue));
@@ -560,7 +605,7 @@ class GeneralLogsSheet implements FromCollection, WithHeadings, WithStyles, With
             return "$formattedValue";
         }
 
-        // Return the original value if decoding fails
+        // return the original value if decoding fails
         return $jsonValue;
     }
 }
@@ -618,13 +663,13 @@ class LicenseLogsSheet implements FromCollection, WithHeadings, WithStyles, With
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:I1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 9,
             'B' => 6,
@@ -652,7 +697,7 @@ class LicenseLogsSheet implements FromCollection, WithHeadings, WithStyles, With
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
                 $event->sheet->setTitle('Licenses of Group');
             },
@@ -713,13 +758,13 @@ class ProjectLogsSheet implements FromCollection, WithHeadings, WithStyles, With
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:I1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 9,
             'B' => 6,
@@ -747,7 +792,7 @@ class ProjectLogsSheet implements FromCollection, WithHeadings, WithStyles, With
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
                 $event->sheet->setTitle('Projects of Group');
             },

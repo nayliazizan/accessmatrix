@@ -19,10 +19,26 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class ProjectController extends Controller
 {
-    public function index(){
-        $projects = Project::withTrashed()
-        ->orderByRaw('deleted_at ASC, deleted_at IS NULL') 
-        ->get(); // Include soft-deleted licenses
+    public function index(Request $request){
+        $sortOrder = $request->input('sort_order', 'latest');
+    
+        $projects = Project::withTrashed();
+    
+        if ($sortOrder == 'latest') {
+            $projects->orderBy('deleted_at', 'asc')->orderBy('created_at', 'desc');
+        } elseif ($sortOrder == 'alphabet') {
+            $projects->orderBy('deleted_at', 'asc')->orderBy('project_name', 'asc');
+        }
+    
+        $projects = $projects->get();
+    
+        return view('projects.index', compact('projects', 'sortOrder'));
+    }
+
+    public function searchProject(Request $request) {
+        $searchText = $request->search;
+
+        $projects=Project::where('project_name', 'LIKE', "%$searchText%")->get();
 
         return view('projects.index', compact('projects'));
     }
@@ -40,7 +56,9 @@ class ProjectController extends Controller
 
         $project->save();
 
-        return redirect('/projects');
+        session(['recently_created_or_updated_project' => $project->project_id]);
+
+        return redirect('/projects')->with('success', 'Project created successfully!');
     }
 
     public function destroy($project_id)
@@ -48,13 +66,14 @@ class ProjectController extends Controller
         $project = Project::findOrFail($project_id);
 
         if ($project->trashed()) {
-            // Permanently delete the soft-deleted project
+            // permanently delete the soft-deleted project
             $project->forceDelete();
-            return redirect()->route('projects.index')->with('success', 'License permanently deleted!');
+            return redirect()->route('projects.index')->with('success', 'Project permanently deleted!');
         } else {
-            // Soft-delete the project
+            // soft-delete the project
             $project->delete();
-            return redirect()->route('projects.index')->with('success', 'License soft-deleted!');
+            session(['recently_created_or_updated_project' => $project->project_id]);
+            return redirect()->route('projects.index')->with('success', 'Project deactivated!');
         }
     }
 
@@ -62,10 +81,10 @@ class ProjectController extends Controller
     {
         $project = Project::withTrashed()->findOrFail($project_id);
 
-        // Restore the soft-deleted project
+        // restore the soft-deleted project
         $project->restore();
 
-        return redirect()->route('projects.index')->with('success', 'Project restored!');
+        return redirect()->route('projects.index')->with('success', 'Project reactivated!');
     }
 
     public function edit($project_id){
@@ -78,7 +97,10 @@ class ProjectController extends Controller
         $project->project_name = $request->input('project_name');
         $project->project_desc = $request->input('project_desc');
         $project->save();
-        return redirect('/projects');
+
+        session(['recently_created_or_updated_project' => $project->project_id]);
+
+        return redirect('/projects')->with('success', 'License updated successfully!');
     }
 
     public function exportListProject($format)
@@ -106,7 +128,7 @@ class ProjectController extends Controller
             case 'pdf':
                 $pdf = app('dompdf.wrapper');
                 $logs = Log::leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-                ->where('logs.table_name', 'projects') // Add the condition for table_name
+                ->where('logs.table_name', 'projects')
                 ->select(
                     'logs.log_id',
                     'logs.user_id', 
@@ -161,19 +183,19 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles, Wit
     public function collection()
     {
         return Project::select('project_id', 'project_name', 'project_desc', 'created_at', 'updated_at', 'deleted_at')
-            ->withTrashed() // Include soft-deleted project
+            ->withTrashed() // include soft-deleted project
                 ->get();
     }
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:F1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 11,
             'B' => 30,
@@ -198,7 +220,7 @@ class ProjectListExport implements FromCollection, WithHeadings, WithStyles, Wit
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];
@@ -230,7 +252,7 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
     {
         return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
             ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-            ->where('logs.table_name', 'projects') // Add the condition for table_name
+            ->where('logs.table_name', 'projects')
             ->get();
     }
 
@@ -257,13 +279,13 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
     
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 9,
             'B' => 6,
@@ -293,7 +315,7 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];
@@ -301,12 +323,12 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
 
     private function formatJsonValue($jsonValue)
     {
-        // Decode the JSON value
+        // decode the JSON value
         $decodedValue = json_decode($jsonValue, true);
 
-        // Check if decoding was successful
+        // check if decoding was successful
         if (json_last_error() === JSON_ERROR_NONE) {
-            // Format the array to a readable string with bulletpoints
+            // format the array to a readable string with bulletpoints
             $formattedValue = implode(', ', array_map(function ($key, $value) {
                 return "• $key: $value";
             }, array_keys($decodedValue), $decodedValue));
@@ -314,7 +336,7 @@ class ProjectLogChangesExport implements FromCollection, WithHeadings, WithStyle
             return "$formattedValue";
         }
 
-        // Return the original value if decoding fails
+        // return the original value if decoding fails
         return $jsonValue;
     }
 

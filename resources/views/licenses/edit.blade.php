@@ -14,11 +14,11 @@
                         @method('PUT')
                         <div class="form-group">
                             <label for="license_name">Name:</label>
-                            <input type="text" class="form-control" id="license_name" name="license_name" value="{{$license->license_name}}">
+                            <input type="text" class="form-control" id="license_name" name="license_name" value="{{$license->license_name}}" required>
                         </div>
                         <div class="form-group">
                             <label for="license_desc">Description:</label>
-                            <textarea class="form-control" name="license_desc" rows="5" cols="40">{{$license->license_desc}}</textarea>
+                            <textarea class="form-control" name="license_desc" rows="5" cols="40" required>{{$license->license_desc}}</textarea>
                         </div>
                         <button type="submit" class="btn btn-primary">Update License</button>
                     </form>

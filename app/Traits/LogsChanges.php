@@ -21,13 +21,13 @@ trait LogsChanges
         });
 
         static::deleting(function ($model) {
-            self::logChange('delete', $model);
+            self::logChange('deactivate', $model);
         });
 
-        // Check if the model uses the SoftDeletes trait before registering the event
+        // check if the model uses the SoftDeletes trait before registering the event
         if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive(get_called_class()))) {
             static::restoring(function ($model) {
-                self::logChange('restore', $model);
+                self::logChange('activate', $model);
             });
         }
     }
@@ -47,7 +47,7 @@ trait LogsChanges
         if ($action === 'update') {
             $original = $model->getOriginal();
         
-            // Get only the columns that were actually changed
+            // get only the columns that were actually changed
             $changedColumns = array_filter($model->getDirty(), function ($value, $key) use ($original) {
                 return $original[$key] != $value;
             }, ARRAY_FILTER_USE_BOTH);
@@ -55,17 +55,17 @@ trait LogsChanges
             if (!empty($changedColumns)) {
                 $data['column_name'] = implode(', ', array_keys($changedColumns));
         
-                // Save the original values in old_value
+                // save the original values in old_value
                 $data['old_value'] = json_encode(array_intersect_key($original, $changedColumns));
         
-                // Save the changed values in new_value
+                // save the changed values in new_value
                 $data['new_value'] = json_encode(array_intersect_key($model->getAttributes(), $changedColumns));
             }
         } elseif ($action === 'create') {
-            // Capture all model attributes as the new value for creates
+            // capture all model attributes as the new value for creates
             $data['new_value'] = json_encode($model->getAttributes());
         } else {
-            // For other actions, set the column_name to null
+            // for other actions, set the column_name to null
             $data['column_name'] = null;
         }
         
@@ -98,7 +98,7 @@ trait LogsChanges
     {
         $logData = self::getLogData($action, $model);
 
-        // Create a log entry
+        // create a log entry
         Log::create($logData);
     }
        

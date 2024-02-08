@@ -90,8 +90,6 @@
 
 <a href="{{ route('noGroupStaff') }}" class="btn btn-danger">NO GROUP'S STAFF</a>
 
-<!-- <a href="" class="btn btn-warning">IMPORT STAFF</a> -->
-
 <a href="#" class="btn btn-warning" data-toggle="modal" data-target="#importStaffModal">IMPORT STAFF</a>
 
 <div class="modal fade" id="importStaffModal" tabindex="-1" role="dialog">
@@ -100,35 +98,44 @@
             @csrf
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Import Staff</h5>
+                    <h5 class="modal-title">IMPORT FILE</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label for="staff_file">Select XLSX file:</label>
-                        <input type="file" class="form-control" id="staff_file" name="staff_file" required>
-                    </div>
-                    @if (isset($data))
-                        <h3>Confirm Import</h3>
-                        <p>Are you sure you want to import these {{ count($data) }} staff?</p>
-                    @endif
+                    <p for="staff_file">Select XLSX file:</p>
+                    <input type="file" class="form-control" id="staff_file" name="staff_file" required>
+                    <br><p style="color: red;"><b>This process could take 3-5 minutes for big datasets. Please don't refresh the page.</b></p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    @if (isset($data))
-                        <button type="submit" class="btn btn-primary">Yes</button>
-                        <a href="{{ route('staff.index') }}" class="btn btn-danger">No</a>
-                    @else
-                        <button type="submit" class="btn btn-primary">Import</button>
-                    @endif
+                    <a href="{{ url('files/template.pdf') }}" target="_blank" class="btn btn-info">CLICK HERE TO SEE FILE TEMPLATE</a>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
+                    <button type="submit" class="btn btn-primary">IMPORT</button>
                 </div>
             </div>
         </form>
     </div>
 </div>
 
+
+<br><br>
+<form class="form-inline my-2 my-lg-0" action="{{url('searchStaff')}}" method="get">
+    @csrf
+    <input class="form-control mr-sm-2" type="search" name="search" placeholder="Search For Staff" aria-label="Search">
+    <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+</form>
+
+
+<div class="dropdown mt-2">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="sortDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        Sort Order
+    </button>
+    <div class="dropdown-menu" aria-labelledby="sortDropdown">
+        <a class="dropdown-item" href="{{ route('staffs.index', ['sort_order' => 'latest']) }}">Latest to Oldest</a>
+        <a class="dropdown-item" href="{{ route('staffs.index', ['sort_order' => 'alphabet']) }}">Alphabetical (A-Z)</a>
+    </div>
+</div>
 
 <table class="table">
     <thead class="thead-light">
@@ -146,8 +153,9 @@
     </thead>
     <tbody>
         @foreach($staffs as $staff)
+        @php $i = $loop->iteration; @endphp
         <tr>
-            <th scope="row">{{ $staff->staff_id }}</th>
+            <th scope="row">{{ $i }}</th>
             <td>
                 @if ($staff->group)
                     {{ $staff->group->group_name }}
@@ -168,7 +176,7 @@
                 <form action="{{ route('staffs.destroy', $staff->staff_id) }}" method="POST">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">DELETE</button>
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this staff?')">DELETE</button>
                 </form>
             </td>
         </tr>

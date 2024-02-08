@@ -10,14 +10,16 @@
 
     <style>
         body {
-            padding-top: 56px; /* Height of the fixed navbar */
+            padding-top: 56px;
             margin: 0;
+            background-color: #fcd8b6; 
+
         }
 
         main {
             padding: 20px;
-            margin: 2% auto; /* Center content horizontally */
-            width: 80%; /* Take 80% of the page width */
+            margin: 2% auto; 
+            width: 80%; 
         }
 
         footer {
@@ -26,38 +28,66 @@
             width: 100%;
             text-align: center;
             padding: 10px;
-            background-color: #f8f9fa; /* Use a light background color for the footer */
+            background-color: #f8f9fa; 
         }
         
         .highlight {
-            background-color: rgba(255, 255, 0, 0.5); /* Yellowish background with 50% opacity */
+            background-color: rgba(255, 255, 0, 0.5); 
         }
 
-        .preloader {
+        .btn-primary {
+            background-color: #fb8239;
+            border-color: #fb8239;
+        }
+
+        .card {
+            background-color: #a51200;
+        }
+
+        .card-header {
+            background-color: #F4976C;
+            color: white;
+        }
+
+        .table thead th {
+            background: #a51200 !important;
+            color: white !important;
+        }
+
+        .form-group {
+            color: white;
+        }
+
+        div.card-header {
+            background: #ffac6e !important;
+            
+        }
+
+        .card {
+            background-color: #a51200;
+            border: 7px solid #450b00;
+            
+        }
+
+        .highlight {
+            background-color: #ffff99;
+            transition: background-color 0.5s ease;
+        }
+
+        #loader{
             position: fixed;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100%;
-            background: #fff; /* Set your background color */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000; /* Adjust the z-index to make sure it's above other elements */
+            height: 100vh;
+            background: #21242d url('{{ asset('img/giphy.gif') }}') no-repeat center center;
+            z-index: 1;
+            overflow: visible;
         }
 
-        .preloader img {
-            width: 50px; /* Set your loader image size */
-            height: 50px; /* Set your loader image size */
-        }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="preloader" id="preloader">
-        <img src="{{ asset('img/giphy.gif') }}" alt="Loading">
-    </div>
 
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
         <a class="navbar-brand" href="/dashboard">AM system</a>
@@ -84,8 +114,10 @@
     </nav>
 </header>
 
+<div id="loader"></div>
+
 <main>
-    @yield('content')
+    <div id="content">@yield('content')</div>
 </main>
 
 <footer>
@@ -104,10 +136,31 @@
     });
 </script>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById('preloader').style.display = 'none';
+<script type="text/javascript">
+
+    var loader;
+    function loadNow(opacity) {
+        if(opacity <= 0) {
+            displayContent();
+        } else {
+            loader.style.opacity = opacity;
+            window.setTimeout(function() {
+                loadNow(opacity - 0.05);  // Add a semicolon here
+            }, 100);
+        }
+    }
+
+    function displayContent() {
+        loader.style.display = 'none';
+        content.style.display = 'block';
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        loader = document.getElementById('loader');
+        content = document.getElementById('content');
+        loadNow(1);
     });
+
 </script>
 
 

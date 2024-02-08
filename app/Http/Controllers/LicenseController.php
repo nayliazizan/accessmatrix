@@ -20,10 +20,26 @@ use Barryvdh\DomPDF\Facade as PDF;
 
 class LicenseController extends Controller
 {
-    public function index(){
-        $licenses = License::withTrashed()
-        ->orderByRaw('deleted_at ASC, deleted_at IS NULL') 
-        ->get(); // Include soft-deleted licenses
+    public function index(Request $request){
+        $sortOrder = $request->input('sort_order', 'latest');
+    
+        $licenses = License::withTrashed();
+    
+        if ($sortOrder == 'latest') {
+            $licenses->orderBy('deleted_at', 'asc')->orderBy('created_at', 'desc');
+        } elseif ($sortOrder == 'alphabet') {
+            $licenses->orderBy('deleted_at', 'asc')->orderBy('license_name', 'asc');
+        }
+    
+        $licenses = $licenses->get();
+    
+        return view('licenses.index', compact('licenses', 'sortOrder'));
+    }
+
+    public function searchLicense(Request $request) {
+        $searchText = $request->search;
+
+        $licenses=License::where('license_name', 'LIKE', "%$searchText%")->get();
 
         return view('licenses.index', compact('licenses'));
     }
@@ -40,7 +56,10 @@ class LicenseController extends Controller
 
         $license->save();
 
-        return redirect('/licenses');
+        // store the ID of the created license in the session
+        session(['recently_created_or_updated_license' => $license->license_id]);
+
+        return redirect('/licenses')->with('success', 'License created successfully!');
     }
 
     public function destroy($license_id)
@@ -48,13 +67,14 @@ class LicenseController extends Controller
         $license = License::findOrFail($license_id);
 
         if ($license->trashed()) {
-            // Permanently delete the soft-deleted license
+            // permanently delete the soft-deleted license
             $license->forceDelete();
             return redirect()->route('licenses.index')->with('success', 'License permanently deleted!');
         } else {
-            // Soft-delete the license
+            // soft-delete the license
             $license->delete();
-            return redirect()->route('licenses.index')->with('success', 'License soft-deleted!');
+            session(['recently_created_or_updated_license' => $license->license_id]);
+            return redirect()->route('licenses.index')->with('success', 'License deactivated!');
         }
     }
 
@@ -62,10 +82,10 @@ class LicenseController extends Controller
     {
         $license = License::withTrashed()->findOrFail($license_id);
 
-        // Restore the soft-deleted license
+        // restore the soft-deleted license
         $license->restore();
 
-        return redirect()->route('licenses.index')->with('success', 'License restored!');
+        return redirect()->route('licenses.index')->with('success', 'License reactivated!');
     }
 
     public function edit($license_id){
@@ -78,7 +98,10 @@ class LicenseController extends Controller
         $license->license_name = $request->input('license_name');
         $license->license_desc = $request->input('license_desc');
         $license->save();
-        return redirect('/licenses');
+
+        session(['recently_created_or_updated_license' => $license->license_id]);
+        
+        return redirect('/licenses')->with('success', 'License updated successfully!');
     }
 
     public function exportListLicense($format)
@@ -88,7 +111,7 @@ class LicenseController extends Controller
                 return Excel::download(new LicenseListExport, 'licenses_list.xls');
                 break;
             case 'pdf':
-                $pdf = app('dompdf.wrapper');  // Create an instance of the PDF facade
+                $pdf = app('dompdf.wrapper');
                 $pdf->loadView('exports.licenses_list', ['licenses' => License::withTrashed()->get()]);
                 return $pdf->download('licenses_list.pdf');
 
@@ -150,7 +173,7 @@ class LicenseListExport implements FromCollection, WithHeadings, WithStyles, Wit
     public function collection()
     {
         return License::select('license_id', 'license_name', 'license_desc', 'created_at', 'updated_at', 'deleted_at')
-            ->withTrashed() // Include soft-deleted licenses
+            ->withTrashed() // include soft-deleted licenses
                 ->get();
     }
 
@@ -168,13 +191,13 @@ class LicenseListExport implements FromCollection, WithHeadings, WithStyles, Wit
 
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:F1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 11,
             'B' => 30,
@@ -200,7 +223,7 @@ class LicenseListExport implements FromCollection, WithHeadings, WithStyles, Wit
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];
@@ -233,7 +256,7 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
     {
         return Log::select('logs.log_id', 'logs.user_id', 'users.name as user_name', 'logs.type_action', 'logs.table_name', 'logs.record_id', 'logs.record_name', 'logs.column_name', 'logs.old_value', 'logs.new_value', 'logs.created_at')
             ->leftJoin('users', 'logs.user_id', '=', 'users.user_id')
-            ->where('logs.table_name', 'licenses') // Add the condition for table_name
+            ->where('logs.table_name', 'licenses')
             ->get();
     }
     
@@ -259,7 +282,7 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
     
     public function styles(Worksheet $sheet)
     {
-        // Bold the headers
+        // bold the headers
         $sheet->getStyle('A1:K1')->applyFromArray([
             'font' => ['bold' => true,],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
@@ -267,7 +290,7 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
 
         $sheet->freezePane('A1');
 
-        // Adjust column widths
+        // adjust column widths
         $columnWidths = [
             'A' => 9,
             'B' => 6,
@@ -297,7 +320,7 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
     {
         return [
             AfterSheet::class => function (AfterSheet $event) {
-                // Freeze the first row
+                // freeze the first row
                 $event->sheet->freezePane('A2');
             },
         ];
@@ -305,12 +328,12 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
 
     private function formatJsonValue($jsonValue)
     {
-        // Decode the JSON value
+        // decode the JSON value
         $decodedValue = json_decode($jsonValue, true);
 
-        // Check if decoding was successful
+        // check if decoding was successful
         if (json_last_error() === JSON_ERROR_NONE) {
-            // Format the array to a readable string with bulletpoints
+            // format the array to a readable string with bulletpoints
             $formattedValue = implode(', ', array_map(function ($key, $value) {
                 return "• $key: $value";
             }, array_keys($decodedValue), $decodedValue));
@@ -318,7 +341,7 @@ class LicenseLogChangesExport implements FromCollection, WithHeadings, WithStyle
             return "$formattedValue";
         }
 
-        // Return the original value if decoding fails
+        // return the original value if decoding fails
         return $jsonValue;
     }
 

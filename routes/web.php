@@ -44,6 +44,8 @@ Route::middleware('auth')->group(function () {
     Route::get('licenses/restore/{license}', [LicenseController::class, 'restore'])->name('licenses.restore');
     Route::resource('licenses', LicenseController::class);
     Route::get('/licenses/exportLog/{format}', [LicenseController::class, 'exportLogLicense'])->name('exportLogLicense');
+    Route::get('/searchLicense', [LicenseController::class, 'searchLicense'])->name('searchLicense');
+
 
 
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
@@ -57,12 +59,14 @@ Route::middleware('auth')->group(function () {
     Route::get('projects/restore/{project}', [ProjectController::class, 'restore'])->name('projects.restore');
     Route::resource('projects', ProjectController::class);
     Route::get('/projects/exportLog/{format}', [ProjectController::class, 'exportLogProject'])->name('exportLogProject');
+    Route::get('/searchProject', [ProjectController::class, 'searchProject'])->name('searchProject');
 
     Route::resource('groups', GroupController::class);
     Route::get('/groups/{group}/restore', [GroupController::class, 'restore'])->name('groups.restore');
     Route::get('/groups/exportList/{format}', [GroupController::class, 'exportListGroup'])->name('exportListGroup');
     Route::get('/groups/exportLog/{format}', [GroupController::class, 'exportLogGroup'])->name('exportLogGroup');
     Route::get('groups/{group}/show_staff', [GroupController::class, 'show_staff'])->name('groups.show_staff');
+    Route::get('/searchGroup', [GroupController::class, 'searchGroup'])->name('searchGroup');
 
     Route::post('/staffs/exportList', [StaffController::class, 'exportListStaff'])->name('exportListStaff');
     Route::get('/staffs/exportLog/{format}', [StaffController::class, 'exportLogStaff'])->name('exportLogStaff');
@@ -70,12 +74,12 @@ Route::middleware('auth')->group(function () {
     Route::resource('staffs', StaffController::class);
     Route::post('/staff', [StaffController::class, 'importStaff'])->name('staff.import');
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
+    Route::get('/searchStaff', [StaffController::class, 'searchStaff'])->name('searchStaff');
 
     Route::get('/tracker/form', [StaffController::class, 'showUploadForm'])->name('tracker.form');
     Route::post('/tracker/results', [StaffController::class, 'compareColumn'])->name('tracker.results');
     Route::get('/tracker/export/status/{format}', [StaffController::class, 'exportStatus'])->name('exportStatus');
     Route::get('/tracker/export/dept/{format}', [StaffController::class, 'exportDept'])->name('exportDept');
-
 
     Route::get('/counter', function () {return view('counter');});
 

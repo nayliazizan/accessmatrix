@@ -11,12 +11,18 @@
                     <h1 class="mb-0">Create a New Staff</h1>
                 </div>
                 <div class="card-body">
+
                     <form method="POST" action="{{ route('staffs.store') }}">
                         @csrf
+                        @if(session('error'))
+                            <div class="alert alert-danger" role="alert">
+                                {{ session('error') }}
+                            </div>
+                        @endif
 
                         <div class="form-group">
                             <label for="group_id">Group:</label>
-                            <select class="form-control" id="group_id" name="group_id">
+                            <select class="form-control" id="group_id" name="group_id" required>
                                 <option value="">No Group</option>
                                 @foreach($groups as $group)
                                     <option value="{{ $group->group_id }}">{{ $group->group_name }}</option>
@@ -31,22 +37,22 @@
 
                         <div class="form-group">
                             <label for="staff_name">Staff Name:</label>
-                            <input class="form-control" type="text" name="staff_name" required>
+                            <input class="form-control" type="text" id="staff_name" name="staff_name" required>
                         </div>
 
                         <div class="form-group">
                             <label for="dept_id">Department ID:</label>
-                            <input class="form-control" type="text" name="dept_id" required>
+                            <input class="form-control" type="text" id="dept_id" name="dept_id" required>
                         </div>
 
                         <div class="form-group">
                             <label for="dept_name">Department Name:</label>
-                            <input class="form-control" type="text" name="dept_name" required>
+                            <input class="form-control" type="text" id="dept_name" name="dept_name" required>
                         </div>
 
                         <div class="form-group">
                             <label for="status">Status:</label>
-                            <input class="form-control" type="text" name="status" required>
+                            <input class="form-control" type="text" id="status" name="status" required>
                         </div>
 
                         <button type="submit" class="btn btn-primary">Create Staff</button>

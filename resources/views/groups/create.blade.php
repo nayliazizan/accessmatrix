@@ -18,7 +18,7 @@
                         
                         <div class="form-group">
                             <label for="group_desc">Group Description</label>
-                            <textarea class="form-control" id="group_desc" name="group_desc"></textarea>
+                            <textarea class="form-control" id="group_desc" name="group_desc" required></textarea>
                         </div>
 
                         <div class="form-group">
