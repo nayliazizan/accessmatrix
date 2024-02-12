@@ -9,7 +9,7 @@
                     <h1 class="mb-0">Create a New License</h1>
                 </div>
                 <div class="card-body">
-                    <form action="/licenses" method="POST">
+                    <form action="{{ route('licenses.index') }}" method="POST">
                         @csrf
                         <div class="form-group">
                             <label for="license_name">Name:</label>

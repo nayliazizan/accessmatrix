@@ -109,7 +109,7 @@
                     <br><p style="color: red;"><b>This process could take 3-5 minutes for big datasets. Please don't refresh the page.</b></p>
                 </div>
                 <div class="modal-footer">
-                    <a href="{{ url('files/template.pdf') }}" target="_blank" class="btn btn-info">CLICK HERE TO SEE FILE TEMPLATE</a>
+                    <a href="{{asset('public/files/template.pdf')}}" target="_blank" class="btn btn-info">CLICK HERE TO SEE FILE TEMPLATE</a>
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">CANCEL</button>
                     <button type="submit" class="btn btn-primary">IMPORT</button>
                 </div>

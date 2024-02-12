@@ -6,6 +6,8 @@
 
     <title>AM system</title>
 
+    <link rel="icon" type="image/svg+xml" href="{{ asset('public/img/1790670_access_key_lock_safe_safety_icon.svg') }}">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <style>
@@ -46,6 +48,36 @@
             margin-bottom: 20px; /* Add some space below the icon */
         }
 
+        body {
+            padding-top: 56px;
+            margin: 0;
+            background-color: #fcd8b6; 
+
+        }
+        
+        .btn-primary {
+            background-color: #fb8239;
+            border-color: #fb8239;
+        }
+
+        .card {
+            background-color: #a51200;
+        }
+
+        .form-group {
+            color: white;
+        }
+
+        div.card-header {
+            background: #ffac6e !important;
+            
+        }
+
+        .card {
+            background-color: #a51200;
+            border: 7px solid #450b00;
+            
+        }
     </style>
 </head>
 <body>
@@ -57,9 +89,9 @@
 <main>
     <div class="flex-center position-ref full-height">
         <div class="content">
-            <img src="img/people-roof-solid.svg" alt="SVG image" width="100" height="100">
+            <img src="{{ asset('public/img/people-roof-solid.svg') }}" alt="SVG image" width="100" height="100">
             <div class="title m-b-md">
-                Access Matrix System
+                BUSINESS INSIGHTS ACCESS METRICS (AM) SYSTEM
             </div>
             <div class="buttons">
                 <a href="{{ route('login') }}" class="btn btn-primary btn-lg">Login</a>

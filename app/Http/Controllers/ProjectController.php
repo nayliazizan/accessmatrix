@@ -25,7 +25,7 @@ class ProjectController extends Controller
         $projects = Project::withTrashed();
     
         if ($sortOrder == 'latest') {
-            $projects->orderBy('deleted_at', 'asc')->orderBy('created_at', 'desc');
+            $projects->orderBy('deleted_at', 'asc')->orderBy('updated_at', 'desc');
         } elseif ($sortOrder == 'alphabet') {
             $projects->orderBy('deleted_at', 'asc')->orderBy('project_name', 'asc');
         }

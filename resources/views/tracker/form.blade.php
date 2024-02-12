@@ -34,7 +34,7 @@
                             <p style="color: yellow;"><b>This process could take 5-7 minutes for big datasets. Please don't refresh the page.</b></p>
                         </div>
 
-                        <a href="{{ url('files/template.pdf') }}" target="_blank" class="btn btn-info">CLICK HERE TO SEE FILE TEMPLATE</a>
+                        <a href="{{asset('public/files/template.pdf')}}" target="_blank" class="btn btn-info">CLICK HERE TO SEE FILE TEMPLATE</a>
                         <button type="submit" class="btn btn-primary">TRACK</button>
                     </form>
                 </div>

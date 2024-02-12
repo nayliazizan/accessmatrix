@@ -26,7 +26,7 @@ class LicenseController extends Controller
         $licenses = License::withTrashed();
     
         if ($sortOrder == 'latest') {
-            $licenses->orderBy('deleted_at', 'asc')->orderBy('created_at', 'desc');
+            $licenses->orderBy('deleted_at', 'asc')->orderBy('updated_at', 'desc');
         } elseif ($sortOrder == 'alphabet') {
             $licenses->orderBy('deleted_at', 'asc')->orderBy('license_name', 'asc');
         }

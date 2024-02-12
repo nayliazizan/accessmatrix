@@ -9,7 +9,7 @@
                     <h1 class="mb-0">Edit License</h1>
                 </div>
                 <div class="card-body">
-                    <form action="/licenses/{{$license->license_id}}" method="POST">
+                    <form action="{{ route('licenses.update', $license->license_id) }}" method="POST">
                         @csrf
                         @method('PUT')
                         <div class="form-group">

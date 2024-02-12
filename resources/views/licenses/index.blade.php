@@ -9,7 +9,7 @@
 @endif
 
 <h2>ALL LICENSES</h2>
-<button type="button" class="btn btn-warning"><a href="/licenses/create">ADD</a></button>
+<button type="button" class="btn btn-warning"><a href="{{ route('licenses.create') }}">ADD</a></button>
 
 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exportListModal">
     LIST
@@ -113,7 +113,7 @@
                 @if($license->trashed())
                     <button class="btn btn-secondary" disabled>UPDATE</button>
                 @else
-                    <a href="/licenses/{{ $license->license_id }}/edit" class="btn btn-primary">UPDATE</a>
+                    <a href="{{ route('licenses.edit', $license->license_id) }}" class="btn btn-primary">UPDATE</a>
                 @endif
             </td>
             <td>

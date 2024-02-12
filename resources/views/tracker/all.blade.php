@@ -5,6 +5,11 @@
     .row-height-3 {
         height: 160px;
     }
+    .table-wrapper {
+        margin-left: 0.5cm;
+        overflow-x: auto;
+    }
+
 </style>
 
 <div class="container mt-5">
@@ -40,6 +45,7 @@
 
         <div class="col-md-6">
             <h3>Staffs from Uploaded File</h3>
+            <div class="table-wrapper">
             <table class="table">
                 <thead class="thead-light">
                     <tr>
@@ -67,6 +73,7 @@
                 
                 </tbody>
             </table>
+            
         </div>
     </div>
 </div>

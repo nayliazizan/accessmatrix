@@ -6,6 +6,8 @@
 
     <title>AM system</title>
 
+    <link rel="icon" type="image/svg+xml" href="{{ asset('public/img/1790670_access_key_lock_safe_safety_icon.svg') }}">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <style>
@@ -78,7 +80,7 @@
             position: fixed;
             width: 100%;
             height: 100vh;
-            background: #21242d url('{{ asset('img/giphy.gif') }}') no-repeat center center;
+            background: #21242d url('{{ asset('public/img/giphy.gif') }}') no-repeat center center;
             z-index: 1;
             overflow: visible;
         }
@@ -90,17 +92,17 @@
 <header>
 
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-        <a class="navbar-brand" href="/dashboard">AM system</a>
+        <a class="navbar-brand" href="{{ route('dashboard') }}">AM system</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
             <div class="navbar-nav">
-                <a class="nav-item nav-link" href="/licenses">LICENSES<span class="sr-only">(current)</span></a>
-                <a class="nav-item nav-link" href="/projects">PROJECTS</a>
-                <a class="nav-item nav-link" href="/groups">GROUPS</a>
-                <a class="nav-item nav-link" href="/staffs">STAFF</a>
-                <a class="nav-item nav-link" href="/tracker/form">TRACKER</a>
+                <a class="nav-item nav-link" href="{{ route('licenses.index') }}">LICENSES<span class="sr-only">(current)</span></a>
+                <a class="nav-item nav-link" href="{{ route('projects.index') }}">PROJECTS</a>
+                <a class="nav-item nav-link" href="{{ route('groups.index') }}">GROUPS</a>
+                <a class="nav-item nav-link" href="{{ route('staffs.index') }}">STAFF</a>
+                <a class="nav-item nav-link" href="{{ route('tracker.form') }}">TRACKER</a>
                 <!-- Add the logout form here -->
                 <form method="POST" action="{{ route('logout') }}" class="nav-item">
                     @csrf

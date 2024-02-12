@@ -57,18 +57,24 @@ class StaffController extends Controller
 
     public function searchStaff(Request $request) {
         $searchText = $request->search;
-
+    
         $staffs = Staff::where(function ($query) use ($searchText) {
             $query->where('staff_id_rw', 'LIKE', "%$searchText%")
                   ->orWhere('staff_name', 'LIKE', "%$searchText%")
                   ->orWhere('dept_id', 'LIKE', "%$searchText%")
                   ->orWhere('dept_name', 'LIKE', "%$searchText%")
                   ->orWhere('status', 'LIKE', "%$searchText%");
-        })->get();
+        })
+        ->orWhereHas('group', function ($query) use ($searchText) {
+            $query->where('group_name', 'LIKE', "%$searchText%");
+        })
+        ->get();
+    
         $groups = Group::all(); 
-
+    
         return view('staffs.index', compact('staffs', 'groups'));
     }
+    
 
     public function noGroupStaff()
     {
@@ -233,6 +239,7 @@ class StaffController extends Controller
             return redirect()->route('staff.index')->with('error', $e->getMessage());
         }
     }
+    
 
     public function showUploadForm()
     {
@@ -672,14 +679,25 @@ class StaffImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
-        return new Staff([
-            'staff_id_rw' => $row['staff_id_rw'],
-            'staff_name' => $row['staff_name'],
-            'dept_id' => $row['dept_id'],
-            'dept_name' => $row['dept_name'],
-            'status' => $row['status'],
-            'group_id' => $row['group_id'] ?? null, // Assign null if group_id is not provided
-        ]);
+        $staffIdRw = $row['staff_id_rw'];
+        $status = strtolower($row['status']);
+
+        // Check if staff with the same staff_id_rw already exists in the database
+        $existingStaff = Staff::where('staff_id_rw', $staffIdRw)->first();
+
+        // Check if status is "active" and staff doesn't exist in the database
+        if (!$existingStaff && $status == 'active') {
+            return new Staff([
+                'staff_id_rw' => $staffIdRw,
+                'staff_name' => $row['staff_name'],
+                'dept_id' => $row['dept_id'],
+                'dept_name' => $row['dept_name'],
+                'status' => $row['status'],
+                'group_id' => $row['group_id'] ?? null, // Assign null if group_id is not provided
+            ]);
+        }
+
+        return null; // Skip this row
     }
 
     public function headingRow(): int
@@ -687,6 +705,7 @@ class StaffImport implements ToModel, WithHeadingRow
         return 1; // Assuming headers are in the first row
     }
 }
+
 
 
 class StatusExport implements FromCollection, WithHeadings, WithStyles, WithEvents

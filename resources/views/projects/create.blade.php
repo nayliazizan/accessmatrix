@@ -9,7 +9,7 @@
                     <h1 class="mb-0">Create a New Project</h1>
                 </div>
                 <div class="card-body">
-                    <form action="/projects" method="POST">
+                    <form action="{{ route('projects.store') }}" method="POST">
                         @csrf
                         <div class="form-group">
                             <label for="project_name">Name:</label>
